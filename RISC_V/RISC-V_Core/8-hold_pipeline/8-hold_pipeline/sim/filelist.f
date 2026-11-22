@@ -1,0 +1,10 @@
+./../src/define.sv
+./../src/riscv.sv
+./../src/pc_counter.sv  
+./../src/rom.sv
+./../src/if2id.sv
+./../src/decode.sv
+./../src/register.sv
+./../src/id2ex.sv 
+./../src/execute.sv
+./../tb/tb_riscv_top.sv

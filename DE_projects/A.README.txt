@@ -1,0 +1,4 @@
+mini_project 主要存储一些简单常用常考的VLSI rtl设计问题。通常以专题的形式展开研究。
+
+仿真软件： Questa_sim 
+

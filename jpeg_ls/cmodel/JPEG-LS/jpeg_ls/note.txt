@@ -1,0 +1,2 @@
+ffmpeg.exe -i out.jls -pix_fmt yuv444p dec.yuv
+ffmpeg.exe -i out.jls -pix_fmt rgb24   dec.rgb

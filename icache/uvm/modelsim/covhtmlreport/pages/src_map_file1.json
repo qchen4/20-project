@@ -1,0 +1,5 @@
+var g_data = {'dummy':null,
+'3':'../env/i_cache_coverage.sv',
+'1':'../env/m_ahb_cyc_coverage.sv',
+'2':'../env/tb.sv',
+'4':'../yuu_ahb/include/yuu_ahb_master_interface.svi'};

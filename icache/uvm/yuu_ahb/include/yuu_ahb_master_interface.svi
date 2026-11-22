@@ -1,0 +1,187 @@
+/////////////////////////////////////////////////////////////////////////////////////
+// Copyright 2020 seabeam@yahoo.com - Licensed under the Apache License, Version 2.0
+// For more information, see LICENCE in the main folder
+/////////////////////////////////////////////////////////////////////////////////////
+`ifndef GUARD_YUU_AHB_MASTER_INTERFACE_SVI
+`define GUARD_YUU_AHB_MASTER_INTERFACE_SVI
+
+// Interface: yuu_ahb_master_interface
+// AHB master bus interface 
+interface yuu_ahb_master_interface();
+  logic                               hclk;
+  logic                               hreset_n;
+  logic [`YUU_AHB_MAX_ADDR_WIDTH-1:0] haddr;
+  logic [1:0]                         htrans;
+  logic [2:0]                         hburst;
+  logic                               hwrite;
+  logic [2:0]                         hsize;
+  logic [`YUU_AHB_MAX_DATA_WIDTH-1:0] hwdata;
+  logic [`YUU_AHB_MAX_DATA_WIDTH-1:0] hrdata;
+  logic                               hready_i;
+  logic [1:0]                         hresp;
+
+  logic [3:0]                         hprot;
+  logic [6:3]                         hprot_emt;
+  logic [3:0]                         hmaster;
+  logic                               hmastlock;
+  logic                               hnonsec;
+  logic                               hexcl;
+  logic                               hexokay;
+  
+  logic [31:0]                        upper_byte_lane;
+  logic [31:0]                        lower_byte_lane;
+
+  //--- signals used to help monitor and driver
+  logic                               data_phase;   //data phase of nonseq and seq trans beat
+  logic [31:0]                        busy_cnt;     //busy cycle before a burst beat
+  logic [31:0]                        idle_cnt;     //idle cycle before first beat of a burst
+
+
+  clocking cb @(posedge hclk);
+  endclocking
+
+  task wait_cycle();
+    @(posedge hclk);
+  endtask
+
+
+
+  clocking drv_cb @(posedge hclk);
+    default input #`YUU_AHB_MASTER_SETUP_TIME output #`YUU_AHB_MASTER_HOLD_TIME;
+
+    output  haddr;
+    output  htrans;
+    output  hburst;
+    output  hwrite;
+    output  hsize;
+    output  hwdata;
+    output  hprot;
+    output  hprot_emt;
+    output  hmaster;
+    output  hmastlock;
+    output  hnonsec;
+    output  hexcl;
+
+    input   hrdata;
+    input   hresp;
+    input   hready_i;
+    input   hexokay;
+
+    output  upper_byte_lane;
+    output  lower_byte_lane;
+  endclocking
+
+  clocking mon_cb @(posedge hclk);
+    default input #`YUU_AHB_MASTER_SETUP_TIME output #`YUU_AHB_MASTER_HOLD_TIME;
+
+    input   haddr;
+    input   htrans;
+    input   hburst;
+    input   hwrite;
+    input   hsize;
+    input   hwdata;
+    input   hprot;
+    input   hprot_emt;
+    input   hmaster;
+    input   hmastlock;
+    input   hnonsec;
+    input   hexcl;
+    input   hexokay;
+
+    input   hrdata;
+    input   hresp;
+    input   hready_i;
+
+    input   upper_byte_lane;
+    input   lower_byte_lane;
+
+    //--- signals used to help monitor and driver
+    input   data_phase;
+    input   idle_cnt;
+    input   busy_cnt;
+  endclocking
+
+
+  modport drv_mp (
+    /*
+    output  haddr,
+    output  htrans,
+    output  hburst,
+    output  hwrite,
+    output  hsize,
+    output  hwdata,
+    output  hprot,
+    output  hmaster,
+    output  hmastlock,
+    output  hnonsec,
+    output  hexcl,
+
+    input   hrdata,
+    input   hresp,
+    input   hready_i,
+    input   hexokay,
+    */
+    input   hreset_n,
+    clocking drv_cb
+  );
+
+  modport mon_mp (
+    /*
+    input   haddr,
+    input   htrans,
+    input   hburst,
+    input   hwrite,
+    input   hsize,
+    input   hwdata,
+    input   hprot,
+    input   hmaster,
+    input   hmastlock,
+    input   hnonsec,
+    input   hexcl,
+
+    input   hrdata,
+    input   hresp,
+    input   hready_i,
+    input   hexokay,
+    */
+    input   hreset_n,
+    clocking mon_cb
+  );
+
+  // Analyze signal used to help monitor and driver
+  `define AHBM_IF_TRANS_IDLE    0
+  `define AHBM_IF_TRANS_BUSY    1
+  `define AHBM_IF_TRANS_NONSEQ  2
+  `define AHBM_IF_TRANS_SEQ     3
+
+
+  always @(posedge hclk or negedge hreset_n)
+    if(!hreset_n)
+        data_phase  <= 1'b0;
+    else if(((htrans == `AHBM_IF_TRANS_NONSEQ) || (htrans == `AHBM_IF_TRANS_SEQ)) && hready_i)
+        data_phase  <= 1'b1;
+    else if(hready_i)
+        data_phase  <= 1'b0;
+
+  always @(posedge hclk or negedge hreset_n)
+    if(!hreset_n)
+        idle_cnt    <= 'd0;
+    else if(htrans == `AHBM_IF_TRANS_IDLE)
+        idle_cnt    <= idle_cnt + 'd1;
+    else if(hready_i)
+        idle_cnt    <= 'd0;
+
+  always @(posedge hclk or negedge hreset_n)
+    if(!hreset_n)
+        busy_cnt    <= 'd0;
+    else if(htrans == `AHBM_IF_TRANS_BUSY)
+        busy_cnt    <= busy_cnt + 'd1;
+    //if idle trans after busy trans, will keep the value of busy_cnt
+    else if(hready_i && ((htrans == `AHBM_IF_TRANS_NONSEQ) || (htrans == `AHBM_IF_TRANS_SEQ)))
+        busy_cnt    <= 'd0;
+
+endinterface
+
+typedef virtual yuu_ahb_master_interface        yuv_ahb_mas_vif;
+
+`endif

@@ -1,0 +1,240 @@
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+  <title>Questa Coverage Report</title>
+  <link rel="StyleSheet" media="screen" href="../css/hdl2html.css"/>
+</head>
+<body id="hdl2html">
+  <tt>
+<pre>
+<a name="1"><q-n>     1  </q-n></a>
+<a name="2"><q-n>     2  </q-n></a>`<q-i>include</q-w> <q-l>"sim_define.v"</q-l>
+<a name="3"><q-n>     3  </q-n></a>
+<a name="4"><q-n>     4  </q-n></a><q-w>class</q-w> i_cache_coverage <q-w>extends</q-w> uvm_component;
+<a name="5"><q-n>     5  </q-n></a>
+<a name="6"><q-n>     6  </q-n></a>    `uvm_component_utils(i_cache_coverage)    
+<a name="7"><q-n>     7  </q-n></a>    uvm_analysis_imp #(i_cache_coverage_item, i_cache_coverage) scb2cov;
+<a name="8"><q-n>     8  </q-n></a>
+<a name="9"><q-n>     9  </q-n></a>	<q-m>//Cover the current item and cache status</q-m>
+<a name="10"><q-n>     10  </q-n></a>	<q-w>covergroup</q-w> cover_item <q-w>with</q-w> <q-w>function</q-w> sample(i_cache_coverage_item  item);
+<a name="11"><q-n>     11  </q-n></a>		option.per_instance = 1;
+<a name="12"><q-n>     12  </q-n></a>
+<a name="13"><q-n>     13  </q-n></a>        <q-m>//---1: m-ahb trans cover</q-m>
+<a name="14"><q-n>     14  </q-n></a>		ahb_rw : <q-w>coverpoint</q-w> item.ahb_item.direction {
+<a name="15"><q-n>     15  </q-n></a>			type_option.comment = <q-l>"m-ahb read/write access."</q-l>;
+<a name="16"><q-n>     16  </q-n></a>		}
+<a name="17"><q-n>     17  </q-n></a>        
+<a name="18"><q-n>     18  </q-n></a>		ahb_rw_trans : <q-w>coverpoint</q-w> item.ahb_item.direction {
+<a name="19"><q-n>     19  </q-n></a>			type_option.comment = <q-l>"m-ahb read/write access change."</q-l>;
+<a name="20"><q-n>     20  </q-n></a>            <q-w>bins</q-w> ahb_rw_trans[] = (READ, WRITE =&gt; READ, WRITE);
+<a name="21"><q-n>     21  </q-n></a>		}
+<a name="22"><q-n>     22  </q-n></a>
+<a name="23"><q-n>     23  </q-n></a>        <q-m>//R/W addr toggle</q-m>
+<a name="24"><q-n>     24  </q-n></a>        <q-m>//                   name                data                       condition</q-m>
+<a name="25"><q-n>     25  </q-n></a>        `cover_val_32_bits(raddr_toggle, item.ahb_item.start_address, <q-w>iff</q-w>(item.ahb_item.direction == READ))
+<a name="26"><q-n>     26  </q-n></a>        `cover_val_32_bits(waddr_toggle, item.ahb_item.start_address, <q-w>iff</q-w>(item.ahb_item.direction == WRITE))
+<a name="27"><q-n>     27  </q-n></a>
+<a name="28"><q-n>     28  </q-n></a>        ahb_addr_max_min : <q-w>coverpoint</q-w> item.ahb_item.start_address {
+<a name="29"><q-n>     29  </q-n></a>			type_option.comment = <q-l>"m-ahb max/min haddr."</q-l>;
+<a name="30"><q-n>     30  </q-n></a>            <q-w>bins</q-w> min_haddr = {32'h0};
+<a name="31"><q-n>     31  </q-n></a>            <q-w>bins</q-w> max_haddr = {32'hffff_ffff};
+<a name="32"><q-n>     32  </q-n></a>		}
+<a name="33"><q-n>     33  </q-n></a>
+<a name="34"><q-n>     34  </q-n></a>        ahb_prot0 : <q-w>coverpoint</q-w> item.ahb_item.prot0 {
+<a name="35"><q-n>     35  </q-n></a>            type_option.comment = <q-l>"m-ahb instruction or data trans."</q-l>;
+<a name="36"><q-n>     36  </q-n></a>        }
+<a name="37"><q-n>     37  </q-n></a>
+<a name="38"><q-n>     38  </q-n></a>        ahb_prot3 : <q-w>coverpoint</q-w> item.ahb_item.prot3 {
+<a name="39"><q-n>     39  </q-n></a>            type_option.comment = <q-l>"m-ahb non-cacheable or cacheable trans."</q-l>;
+<a name="40"><q-n>     40  </q-n></a>        }
+<a name="41"><q-n>     41  </q-n></a>
+<a name="42"><q-n>     42  </q-n></a>        ahb_hsize : <q-w>coverpoint</q-w> item.ahb_item.size {
+<a name="43"><q-n>     43  </q-n></a>            type_option.comment = <q-l>"m-ahb hsize."</q-l>;
+<a name="44"><q-n>     44  </q-n></a>            <q-w>bins</q-w> hsize[] = {SIZE8, SIZE16, SIZE32};
+<a name="45"><q-n>     45  </q-n></a>        }
+<a name="46"><q-n>     46  </q-n></a>
+<a name="47"><q-n>     47  </q-n></a>        ahb_hburst: <q-w>coverpoint</q-w> item.ahb_item.burst {
+<a name="48"><q-n>     48  </q-n></a>            type_option.comment = <q-l>"m-ahb hburst."</q-l>;
+<a name="49"><q-n>     49  </q-n></a>            <q-w>bins</q-w> single = {SINGLE};
+<a name="50"><q-n>     50  </q-n></a>        }
+<a name="51"><q-n>     51  </q-n></a>
+<a name="52"><q-n>     52  </q-n></a>        ahb_addr_offset : <q-w>coverpoint</q-w> item.ahb_item.address[0][1:0] {
+<a name="53"><q-n>     53  </q-n></a>            type_option.comment = <q-l>"m-ahb address byte offset."</q-l>;
+<a name="54"><q-n>     54  </q-n></a>            <q-w>bins</q-w> haddr_offset[] = {0, 1, 2, 3};
+<a name="55"><q-n>     55  </q-n></a>        }
+<a name="56"><q-n>     56  </q-n></a>
+<a name="57"><q-n>     57  </q-n></a>        ahb_trans_cache : <q-w>cross</q-w> cache_init, ahb_prot0, ahb_rw, ahb_prot3, ahb_hsize {
+<a name="58"><q-n>     58  </q-n></a>            <q-w>ignore_bins</q-w> no_write_on_inst = <q-w>binsof</q-w>(ahb_prot0) <q-w>intersect</q-w> {OPCODE_FETCH} &amp;&amp; <q-w>binsof</q-w>(ahb_rw) <q-w>intersect</q-w> {WRITE};
+<a name="59"><q-n>     59  </q-n></a>        }
+<a name="60"><q-n>     60  </q-n></a>
+<a name="61"><q-n>     61  </q-n></a>        ahb_trans_all : <q-w>cross</q-w> cache_init, ahb_rw, ahb_hsize, ahb_addr_offset {
+<a name="62"><q-n>     62  </q-n></a>            <q-w>ignore_bins</q-w> hsize_32b_ignore = <q-w>binsof</q-w>(ahb_hsize) <q-w>intersect</q-w> {SIZE32} &amp;&amp; <q-w>binsof</q-w>(ahb_addr_offset) <q-w>intersect</q-w> {1,2,3};
+<a name="63"><q-n>     63  </q-n></a>            <q-w>ignore_bins</q-w> hsize_16b_ignore = <q-w>binsof</q-w>(ahb_hsize) <q-w>intersect</q-w> {SIZE16} &amp;&amp; <q-w>binsof</q-w>(ahb_addr_offset) <q-w>intersect</q-w> {1,3};
+<a name="64"><q-n>     64  </q-n></a>        }
+<a name="65"><q-n>     65  </q-n></a>
+<a name="66"><q-n>     66  </q-n></a>        <q-m>//R/W data_toggle</q-m>
+<a name="67"><q-n>     67  </q-n></a>        <q-m>//                   name                data                       condition</q-m>
+<a name="68"><q-n>     68  </q-n></a>        `cover_val_32_bits(wdata_toggle, item.ahb_item.data[0], <q-w>iff</q-w>(item.ahb_item.direction == WRITE))
+<a name="69"><q-n>     69  </q-n></a>        `cover_val_32_bits(rdata_toggle, item.ahb_item.data[0], <q-w>iff</q-w>(item.ahb_item.direction == READ))
+<a name="70"><q-n>     70  </q-n></a>
+<a name="71"><q-n>     71  </q-n></a>        ahb_hprot : <q-w>coverpoint</q-w> {item.ahb_item.prot3, item.ahb_item.prot2, item.ahb_item.prot1, item.ahb_item.prot0} {
+<a name="72"><q-n>     72  </q-n></a>            type_option.comment = <q-l>"m-ahb hprot."</q-l>;
+<a name="73"><q-n>     73  </q-n></a>        }
+<a name="74"><q-n>     74  </q-n></a>
+<a name="75"><q-n>     75  </q-n></a>        ahb_hresp : <q-w>coverpoint</q-w> item.ahb_item.response[0] {
+<a name="76"><q-n>     76  </q-n></a>            type_option.comment = <q-l>"m-ahb hresp."</q-l>;
+<a name="77"><q-n>     77  </q-n></a>        }
+<a name="78"><q-n>     78  </q-n></a>
+<a name="79"><q-n>     79  </q-n></a>        ahb_hresp_rw: <q-w>cross</q-w> cache_init, ahb_rw, ahb_hresp;
+<a name="80"><q-n>     80  </q-n></a>
+<a name="81"><q-n>     81  </q-n></a>        ahb_hmastlock : <q-w>coverpoint</q-w> item.ahb_item.lock {
+<a name="82"><q-n>     82  </q-n></a>            type_option.comment = <q-l>"m-ahb hmastlock."</q-l>;
+<a name="83"><q-n>     83  </q-n></a>        }
+<a name="84"><q-n>     84  </q-n></a>
+<a name="85"><q-n>     85  </q-n></a>        ahb_hmastlock_rw: <q-w>cross</q-w> cache_init, ahb_rw, ahb_hmastlock;
+<a name="86"><q-n>     86  </q-n></a>
+<a name="87"><q-n>     87  </q-n></a>        idle_between_burst: <q-w>coverpoint</q-w> item.ahb_item.idle_delay {
+<a name="88"><q-n>     88  </q-n></a>            <q-w>bins</q-w> idle_cycles[] = {[0:7]};
+<a name="89"><q-n>     89  </q-n></a>        }
+<a name="90"><q-n>     90  </q-n></a>
+<a name="91"><q-n>     91  </q-n></a>        <q-m>//---2: cache status check</q-m>
+<a name="92"><q-n>     92  </q-n></a>        cache_init : <q-w>coverpoint</q-w> item.cache_init {
+<a name="93"><q-n>     93  </q-n></a>            type_option.comment = <q-l>"Cache initial or working status."</q-l>;
+<a name="94"><q-n>     94  </q-n></a>            <q-w>bins</q-w> cache_init = {1};
+<a name="95"><q-n>     95  </q-n></a>            <q-w>bins</q-w> cache_work = {0};
+<a name="96"><q-n>     96  </q-n></a>        }
+<a name="97"><q-n>     97  </q-n></a>
+<a name="98"><q-n>     98  </q-n></a>        cache_miss : <q-w>coverpoint</q-w> item.miss <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="99"><q-n>     99  </q-n></a>            type_option.comment = <q-l>"cache miss."</q-l>;
+<a name="100"><q-n>     100  </q-n></a>        }
+<a name="101"><q-n>     101  </q-n></a>        
+<a name="102"><q-n>     102  </q-n></a>        cache_tag_hit : <q-w>coverpoint</q-w> item.tag_hit <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="103"><q-n>     103  </q-n></a>            type_option.comment = <q-l>"cache tag_hit[3:0] of all ways."</q-l>;
+<a name="104"><q-n>     104  </q-n></a>            <q-w>bins</q-w> tag_hit[] = {4'b0000, 4'b0001, 4'b0010, 4'b0100, 4'b1000}; <q-m>//one-hot encoding</q-m>
+<a name="105"><q-n>     105  </q-n></a>        }
+<a name="106"><q-n>     106  </q-n></a>
+<a name="107"><q-n>     107  </q-n></a>        cache_tag_hit_flag : <q-w>coverpoint</q-w> item.tag_hit_flag <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="108"><q-n>     108  </q-n></a>            type_option.comment = <q-l>"cache tag_hit_flag."</q-l>;
+<a name="109"><q-n>     109  </q-n></a>        }
+<a name="110"><q-n>     110  </q-n></a>
+<a name="111"><q-n>     111  </q-n></a>        cache_multi_hit : <q-w>coverpoint</q-w> item.tag_hit_flag <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="112"><q-n>     112  </q-n></a>            type_option.comment = <q-l>"cache tag hit multiple times."</q-l>;
+<a name="113"><q-n>     113  </q-n></a>            <q-w>bins</q-w> hit2 = (1 =&gt; 1);
+<a name="114"><q-n>     114  </q-n></a>            <q-w>bins</q-w> hit3 = (1 =&gt; 1[*2]);
+<a name="115"><q-n>     115  </q-n></a>            <q-w>bins</q-w> hit4 = (1 =&gt; 1[*3]);
+<a name="116"><q-n>     116  </q-n></a>            <q-w>bins</q-w> hit5 = (1 =&gt; 1[*4]);
+<a name="117"><q-n>     117  </q-n></a>        }
+<a name="118"><q-n>     118  </q-n></a>
+<a name="119"><q-n>     119  </q-n></a>        cache_hit_fill_line : <q-w>coverpoint</q-w> item.fill_hit <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="120"><q-n>     120  </q-n></a>            type_option.comment = <q-l>"cache hit filling line."</q-l>;
+<a name="121"><q-n>     121  </q-n></a>        }
+<a name="122"><q-n>     122  </q-n></a>
+<a name="123"><q-n>     123  </q-n></a>        cache_miss_then_tag_hit : <q-w>coverpoint</q-w> {item.tag_hit_flag, item.miss, item.m_wrap_dphase, item.cache_line_wr} <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="124"><q-n>     124  </q-n></a>            type_option.comment = <q-l>"cache miss followed by tag hit."</q-l>;
+<a name="125"><q-n>     125  </q-n></a>            <q-w>bins</q-w> miss_then_tag_hit = (4'b0100 =&gt; 4'b1010);
+<a name="126"><q-n>     126  </q-n></a>        }
+<a name="127"><q-n>     127  </q-n></a>
+<a name="128"><q-n>     128  </q-n></a>        cache_miss_then_tag_hit_multi : <q-w>coverpoint</q-w> {item.tag_hit_flag, item.miss, item.m_wrap_dphase, item.cache_line_wr} <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="129"><q-n>     129  </q-n></a>            type_option.comment = <q-l>"cache miss followed by tag hit multiple times."</q-l>;
+<a name="130"><q-n>     130  </q-n></a>            <q-w>bins</q-w> miss_then_tag_hit_2 = (4'b0100 =&gt; 4'b1010[*2]);
+<a name="131"><q-n>     131  </q-n></a>            <q-w>bins</q-w> miss_then_tag_hit_3 = (4'b0100 =&gt; 4'b1010[*3]);
+<a name="132"><q-n>     132  </q-n></a>        }
+<a name="133"><q-n>     133  </q-n></a>
+<a name="134"><q-n>     134  </q-n></a>        cache_trans_when_filling : <q-w>coverpoint</q-w> {item.ahb_item.prot0, item.ahb_item.prot3, item.ahb_item.direction} <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.m_wrap_dphase) &amp;&amp; (!item.cache_line_wr)){
+<a name="135"><q-n>     135  </q-n></a>            type_option.comment = <q-l>"m-ahb trans when reading missing cache line."</q-l>;
+<a name="136"><q-n>     136  </q-n></a>            <q-w>bins</q-w> data_read = {3'b110, 3'b100};
+<a name="137"><q-n>     137  </q-n></a>            <q-w>bins</q-w> data_write= {3'b111, 3'b101};
+<a name="138"><q-n>     138  </q-n></a>            <q-w>bins</q-w> cacheable_i_read = {3'b010};
+<a name="139"><q-n>     139  </q-n></a>            <q-w>bins</q-w> noncacheable_i_read = {3'b000};
+<a name="140"><q-n>     140  </q-n></a>        }
+<a name="141"><q-n>     141  </q-n></a>
+<a name="142"><q-n>     142  </q-n></a>        cache_trans_when_write_dmem : <q-w>coverpoint</q-w> {item.ahb_item.prot0, item.ahb_item.prot3, item.ahb_item.direction} <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.m_wrap_dphase) &amp;&amp; (item.cache_line_wr)){
+<a name="143"><q-n>     143  </q-n></a>            type_option.comment = <q-l>"m-ahb trans when write missing cache line to data mem."</q-l>;
+<a name="144"><q-n>     144  </q-n></a>            <q-m>//bins data_read = {3'b110, 3'b100};</q-m>
+<a name="145"><q-n>     145  </q-n></a>            <q-m>//bins data_write= {3'b111, 3'b101};</q-m>
+<a name="146"><q-n>     146  </q-n></a>            <q-w>bins</q-w> cacheable_i_read = {3'b010};
+<a name="147"><q-n>     147  </q-n></a>            <q-m>//bins noncacheable_i_read = {3'b000};</q-m>
+<a name="148"><q-n>     148  </q-n></a>        }
+<a name="149"><q-n>     149  </q-n></a>
+<a name="150"><q-n>     150  </q-n></a>        cache_miss_then_miss : <q-w>coverpoint</q-w> {item.miss, item.m_wrap_dphase, item.cache_line_wr} <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="151"><q-n>     151  </q-n></a>            type_option.comment = <q-l>"cache miss followed by cache miss."</q-l>;
+<a name="152"><q-n>     152  </q-n></a>            <q-w>bins</q-w> miss_then_miss = (3'b100 =&gt; 3'b110);
+<a name="153"><q-n>     153  </q-n></a>        }
+<a name="154"><q-n>     154  </q-n></a>
+<a name="155"><q-n>     155  </q-n></a>        cache_hit_fill_index : <q-w>coverpoint</q-w> (item.hit_fill_index) <q-w>iff</q-w>(item.tag_hit != 0){
+<a name="156"><q-n>     156  </q-n></a>            type_option.comment = <q-l>"cache tag hit, hit index == index of current filling line."</q-l>;
+<a name="157"><q-n>     157  </q-n></a>        }
+<a name="158"><q-n>     158  </q-n></a>
+<a name="159"><q-n>     159  </q-n></a>        cache_index : <q-w>coverpoint</q-w> item.a_index <q-w>iff</q-w>((item.cache_init == 0) &amp;&amp; (item.i_trans) &amp;&amp; (item.ahb_item.prot3)){
+<a name="160"><q-n>     160  </q-n></a>            type_option.comment = <q-l>"cache index."</q-l>;
+<a name="161"><q-n>     161  </q-n></a>            <q-w>bins</q-w> cache_index[] = {[0:((1&lt;&lt;`INDEX_BITS)-1)]};
+<a name="162"><q-n>     162  </q-n></a>        }
+<a name="163"><q-n>     163  </q-n></a>
+<a name="164"><q-n>     164  </q-n></a>        cache_hit_miss_all_index : <q-w>cross</q-w> cache_tag_hit, cache_index;
+<a name="165"><q-n>     165  </q-n></a>    <q-w>endgroup</q-w>
+<a name="166"><q-n>     166  </q-n></a>
+<a name="167"><q-n>     167  </q-n></a>
+<a name="168"><q-n>     168  </q-n></a>    <q-w>function</q-w> <q-w>new</q-w>(<q-w>string</q-w> name = <q-l>"inst"</q-l>, uvm_component parent = <q-w>null</q-w>);
+<a name="169"><q-n>     169  </q-n></a>        <q-w>super</q-w>.<q-w>new</q-w>(name, parent);
+<a name="170"><q-n>     170  </q-n></a>        cover_item = <q-w>new</q-w>();
+<a name="171"><q-n>     171  </q-n></a>    <q-w>endfunction</q-w>
+<a name="172"><q-n>     172  </q-n></a>
+<a name="173"><q-n>     173  </q-n></a>    <q-w>virtual</q-w> <q-w>function</q-w> <q-w>void</q-w> build_phase(uvm_phase phase);
+<a name="174"><q-n>     174  </q-n></a>        <q-w>super</q-w>.build_phase(phase);
+<a name="175"><q-n>     175  </q-n></a>        scb2cov = <q-w>new</q-w>(<q-l>"scb2cov"</q-l>, <q-w>this</q-w>);
+<a name="176"><q-n>     176  </q-n></a>    <q-w>endfunction</q-w> : build_phase
+<a name="177"><q-n>     177  </q-n></a>
+<a name="178"><q-n>     178  </q-n></a>    <q-w>virtual</q-w> <q-w>function</q-w> <q-w>void</q-w> connect_phase(uvm_phase phase);
+<a name="179"><q-n>     179  </q-n></a>        <q-w>super</q-w>.connect_phase(phase);
+<a name="180"><q-n>     180  </q-n></a>    <q-w>endfunction</q-w> : connect_phase
+<a name="181"><q-n>     181  </q-n></a>
+<a name="182"><q-n>     182  </q-n></a>    <q-m>//save coverage item to queue</q-m>
+<a name="183"><q-n>     183  </q-n></a>    <q-w>extern</q-w> <q-w>virtual</q-w> <q-w>function</q-w> <q-w>void</q-w> write (i_cache_coverage_item item);
+<a name="184"><q-n>     184  </q-n></a>
+<a name="185"><q-n>     185  </q-n></a>    <q-m>//uvm build in task</q-m>
+<a name="186"><q-n>     186  </q-n></a>    <q-w>extern</q-w> <q-w>task</q-w> run_phase (uvm_phase phase);
+<a name="187"><q-n>     187  </q-n></a>
+<a name="188"><q-n>     188  </q-n></a>    <q-m>//display item member variables</q-m>
+<a name="189"><q-n>     189  </q-n></a>    <q-w>extern</q-w> <q-w>virtual</q-w> <q-w>function</q-w> <q-w>void</q-w> icache_status_print(i_cache_coverage_item item);
+<a name="190"><q-n>     190  </q-n></a>    <q-w>extern</q-w> <q-w>virtual</q-w> <q-w>function</q-w> <q-w>void</q-w> icache_item_print(yuu_ahb_item item);
+<a name="191"><q-n>     191  </q-n></a>
+<a name="192"><q-n>     192  </q-n></a><q-w>endclass</q-w> : i_cache_coverage
+<a name="193"><q-n>     193  </q-n></a>
+<a name="194"><q-n>     194  </q-n></a><q-w>function</q-w> <q-w>void</q-w> i_cache_coverage::write (i_cache_coverage_item item);
+<a name="195"><q-n>     195  </q-n></a>    cover_item.sample(item);
+<a name="196"><q-n>     196  </q-n></a><q-w>endfunction</q-w> : write
+<a name="197"><q-n>     197  </q-n></a>
+<a name="198"><q-n>     198  </q-n></a><q-w>task</q-w> i_cache_coverage::run_phase(uvm_phase phase);
+<a name="199"><q-n>     199  </q-n></a>
+<a name="200"><q-n>     200  </q-n></a><q-w>endtask</q-w> : run_phase
+<a name="201"><q-n>     201  </q-n></a>
+<a name="202"><q-n>     202  </q-n></a><q-w>function</q-w> <q-w>void</q-w> i_cache_coverage::icache_status_print(i_cache_coverage_item item);
+<a name="203"><q-n>     203  </q-n></a>    $display(<q-l>"At time %0t, print icache_status values:"</q-l>, $<q-w>time</q-w>);
+<a name="204"><q-n>     204  </q-n></a>    $display(<q-l>"cahce_init: %0h"</q-l>, item.cache_init);
+<a name="205"><q-n>     205  </q-n></a>    $display(<q-l>"m_wrap_dphase: %0h"</q-l>, item.m_wrap_dphase);
+<a name="206"><q-n>     206  </q-n></a>    $display(<q-l>"cache_line_wr: %0h"</q-l>, item.cache_line_wr);
+<a name="207"><q-n>     207  </q-n></a>    $display(<q-l>"i_trans: %0h"</q-l>, item.i_trans);
+<a name="208"><q-n>     208  </q-n></a>    $display(<q-l>"tag_hit: %0h"</q-l>, item.tag_hit);
+<a name="209"><q-n>     209  </q-n></a>    $display(<q-l>"tag_hit_flag: %0h"</q-l>, item.tag_hit_flag);
+<a name="210"><q-n>     210  </q-n></a>    $display(<q-l>"miss: %0h"</q-l>, item.miss);
+<a name="211"><q-n>     211  </q-n></a>    $display(<q-l>"replace_way: %0h"</q-l>, item.replace_way);
+<a name="212"><q-n>     212  </q-n></a>    $display(<q-l>"a_index: %0h"</q-l>, item.a_index);
+<a name="213"><q-n>     213  </q-n></a>    $display(<q-l>"hit_fill_index: %0h"</q-l>, item.hit_fill_index);
+<a name="214"><q-n>     214  </q-n></a><q-w>endfunction</q-w>
+<a name="215"><q-n>     215  </q-n></a>
+<a name="216"><q-n>     216  </q-n></a><q-w>function</q-w> <q-w>void</q-w> i_cache_coverage::icache_item_print(yuu_ahb_item item);
+<a name="217"><q-n>     217  </q-n></a>    $display(<q-l>"At time %0t, print ahb trans item values:"</q-l>, $<q-w>time</q-w>);
+<a name="218"><q-n>     218  </q-n></a>    $display(<q-l>"addr : %0h"</q-l>, item.address[0]);
+<a name="219"><q-n>     219  </q-n></a>    $display(<q-l>"direction : %0h"</q-l>, item.direction);
+<a name="220"><q-n>     220  </q-n></a>    $display(<q-l>"hsize : %0h"</q-l>, item.size);
+<a name="221"><q-n>     221  </q-n></a>    $display(<q-l>"prot0: %0h"</q-l>, item.prot0);
+<a name="222"><q-n>     222  </q-n></a>    $display(<q-l>"prot3: %0h"</q-l>, item.prot3);
+<a name="223"><q-n>     223  </q-n></a><q-w>endfunction</q-w>
+<a name="224"><q-n>     224  </q-n></a>
+</pre>
+</tt>
+
+  
+</body>
+</html>

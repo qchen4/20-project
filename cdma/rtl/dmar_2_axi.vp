@@ -1,0 +1,335 @@
+// ---------------------------------------------------------------------------//
+// The confidential and proprietary information contained in this file may
+// only be used by a person authorised under and to the extent permitted
+// by a subsisting licensing agreement from SiliconThink.
+//
+//      (C) COPYRIGHT SiliconThink Limited or its affiliates
+//                   ALL RIGHTS RESERVED
+//
+// This entire notice must be reproduced on all copies of this file
+// and copies of this file may only be made by a person if such person is
+// permitted to do so under the terms of a subsisting license agreement
+// from SiliconThink or its affiliates.
+// ---------------------------------------------------------------------------//
+
+//----------------------------------------------------------------------------//
+// File name    : .v
+// Author       : sky@SiliconThink 
+// E-mail       : 
+// Project      : 
+// Created      : 
+// Copyright    : 
+// Description  : 
+//  1: All AXI burst are 32bit aligned, use read/write byte enable to mask out
+//     the unused bytes.
+//  2: Maximal AXI burst length is 16.
+//  3: Read cmd outstanding is constrainted in a 1D DMA.
+//----------------------------------------------------------------------------//
+
+module dmar_2_axi(
+    //--- cfg regs
+    dma_cmd_sof     ,
+    dma_busy        ,
+    cfg_arcache     ,
+    cfg_awcache     ,
+    cfg_dma_halt    ,
+   
+    //--- buffer status
+    buf_empty_word  ,
+
+    //--- DMA read inf_0
+    dma_r_req0      ,
+    dma_r_ack0      ,
+    dma_r_addr0     ,
+    dma_r_len0      ,
+
+    dma_dvld0       ,
+    dma_rd_last0    ,
+    dma_rdata0      ,
+    dma_rbe0        ,
+    dma_dack0       , 
+
+    //--- DMA read inf_1
+    dma_r_req1      ,
+    dma_r_ack1      ,
+    dma_r_addr1     ,
+    dma_r_len1      ,
+
+    dma_dvld1       ,
+    dma_rd_last1    ,
+    dma_rdata1      ,
+    dma_rbe1        ,
+    dma_dack1       , 
+	
+	arid          	,
+	araddr        	,
+	arlen         	,
+	arsize        	,
+	arburst       	,
+	arlock        	,
+	arcache       	,
+	arprot        	,
+	arvalid       	,
+	arready       	,
+	
+	rid           	,
+	rdata         	,
+	rresp         	,
+	rlast         	,
+	rvalid        	,
+	rready        	,
+
+    clk             ,
+    rstn             
+);
+
+
+parameter   RCMD_THRES = 6'd8;
+
+
+input   wire            clk, rstn       ;
+input   wire            dma_cmd_sof     ;
+input   wire            dma_busy        ;
+input   wire            cfg_dma_halt    ;   //1: halt AXI trasfer
+input   wire    [3:0]   cfg_arcache     ;   //arcache flag in AXI cmd
+input   wire    [3:0]   cfg_awcache     ;   //awcache flag in AXI cmd
+
+input   wire    [5:0]   buf_empty_word  ;   //empty 32b space in the data fifo (data phase)
+
+//--- DMA read inf_0 & _1 (1D DMA req)
+input   wire            dma_r_req0      ;   //1: send out dma req   
+output  wire            dma_r_ack0      ;   
+input   wire    [31:0]  dma_r_addr0     ;   //byte addr, may not 32bit align
+input   wire    [15:0]  dma_r_len0      ;   //byte length, cnt from 0
+
+output  wire            dma_dvld0       ;   //read data valid
+output  wire            dma_rd_last0    ;   //1'b1: last data of a dma_r_req
+output  wire    [31:0]  dma_rdata0      ;
+output  wire    [3:0]   dma_rbe0        ;   //read data byte valid
+input   wire            dma_dack0       ;
+
+input   wire            dma_r_req1      ;   //1: send out dma req   
+output  wire            dma_r_ack1      ;   
+input   wire    [31:0]  dma_r_addr1     ;   //byte addr, may not 32bit align
+input   wire    [15:0]  dma_r_len1      ;   //byte length, cnt from 0
+
+output  wire            dma_dvld1       ;   //read data valid
+output  wire            dma_rd_last1    ;   //1'b1: last data of a dma_r_req
+output  wire    [31:0]  dma_rdata1      ;
+output  wire    [3:0]   dma_rbe1        ;   //read data byte valid
+input   wire            dma_dack1       ;
+
+output  wire    [3:0]   arid      		;	//0~1
+output  wire    [31:0]  araddr    		;
+output  wire    [3:0]   arlen     		;
+output  wire    [2:0]   arsize    		;
+output  wire    [1:0]   arburst   		;
+output  wire    [1:0]   arlock    		;
+output  wire    [3:0]   arcache   		;
+output  wire    [2:0]   arprot    		;
+output  wire            arvalid   		;
+input   wire            arready   		;
+
+input   wire    [3:0]   rid       		;
+input   wire    [31:0]  rdata     		;
+input   wire    [1:0]   rresp     		;
+input   wire            rlast     		;
+input   wire            rvalid    		;
+output  wire            rready    		;
+
+
+`protected128
+PDI&NB]M!9G94>: R0B77MZYE_]XRWOSLD%O*4N_>6TDC<>IDF<1"J8FAF'LXW(0O
+PRXJ7YX@M/;Z:X/"0SM694^%J>,,F-E&8MB0"$>&L"$"%42UW[V' >,J,L>L@TK(&
+P?E05ZP)(TVFX4L[I+9AX1$C^HF_ATG*= I%FX]_X D(HNZH]YY4*/TK1;3SQDFE3
+PA1J,J,I2<<4;P&TO-<EEOWV,J..*Q)?Z5/KO\,?RY=ZUQ$<C62-UA<$QJY8"!I5M
+P(S]O[SC"_8C<!O6 ^OVZ[!-WZN%-C5&OH,:JYP1="_H&!.\:)J4XZB##.3,_Y])D
+P,0:?]R @B/R9XF[12,(/=!E8?MB;]+=Z=!!;)R_/N9?2$JCI]@9;+48.#7W"M22V
+P ;+<@3+=<,WTC:,'1&IM6?!S+X3"NIL(->_K&KGC)?]C\)^RG67/0H.E'$)M%?;1
+PE^9LHI9D^62&$+&_0Q9@Y_G32.! $' K_Z^%U>+4"_I+;9="[G3%:BZ,UINIRGTM
+P0J5#-A=5$[BG+WCOIZXP(4%M\EP-5AOGSWSQ>;B]AC/-2E_]JNU9THBVXEO)1S08
+P^?JB0%+->=>7A9+</J36^2<O>CUY9K<>3K]TXI%>!&GF%S"AY%^]*MPFKULJVV_H
+P&U@QC62JY9VQ0(L\0-_A:<K6Y@"."Y4P-)314IPOOQ+:LK[[JXZ]7<LT]S?OVZ,9
+PR1MY605D"TY271"&!=G@D:=>_-/,P/,C>L\[Q=#5T:#><;A-S$A@"N==QBXP[(R-
+P/LL#!I\5?[G+G>O?V0.4]-DALM1)18C!$5LX1@Q9!1@3VF?XX?3O('8G:B41OY<N
+P@UR:-R :,?VKL[/-PWZ$=08GU.%TD+8($AF@>;_AS2J".>47Q ^S7Z@%<@WJQ*F^
+P/FGU4\]Y?5QZP_"AVM!\0#=Z5,#6*_^Y_YGI #1>/I-;B+\G 0G@@5?3BY947_@*
+PFVK$1\MR%_GY#-EQ3=AK- 9Y&@SR"W7"NO!\NP\'=@ %O>&=PIZ@VP52ZGNR9B&$
+PQU:I-K]>O+1EU,\(Q>=*;7KF> 7*7]]M9JB6-Q&/:8"6C-]):D[4PP0N,^0/R9^Y
+PF0E"UY@NN#\D-\TM'#,;"4*ZGR[ZK[-3*SCWT,\+:X!\R7-2FR?Y13^IP'<EZ1L#
+P9BNQM.-5+./39R!D:*;-SM UN8Q[P21!PUD7)J^MZ^H.0</._W\+WH&Z^_8)WU&^
+P@C%(Y9QFP71'W]K)7-=6<!7.V$YIWQ<#R2U*AAF3Q3TX;V?3TA3"WR14?E%@4R $
+P[>QS<O9Y=,GZOAM<"CG:FE"@^V.O,"JG&DP-8<^CJ&>Q*XR$D4%-VBCS#>1&!Z=%
+PHYUG9.B TE91NPN"C<5:G &OJ#A<4(RI>3@]=W" Q!L]X^#U,_I+'QXW,150:&3;
+P$#WN[2%G14C (=LDR12V@U*#_(_;:^6;?",F*COZC2[0C3/:(W%.'N:S''Z^@1S 
+PAWZQBR"S(XO^<6@&U##SS= QYP%,U!].[$&WNSM1>*E/1#V:OTEJNZA!5[8UJ^EE
+P^G(B-[^XYCSJ/(NNHFVUVV+'3_%(>2Q"R#;K2XQSQR*]B(7O%@&KF$[]]C=35V$'
+PLIA<AJ_@(%T#@2+D:T",@72['=-@U.9,=TSSDA-9UF ;B7#WN[84B451J!KZ8$\W
+P/SCY!FHQ#H[FE[D@Z2ZR], !KF5=B()<BT$SNK7L>%W,NN\7I5M=/6TRW%C,39CL
+PM(-Q)?Q)X*C-A%R" S5U<_X/"8>_TE)^O(ZZ5#%D^A>[G*(_VRYDK]>LC.>TG^,Q
+PE)J&[C*.+GPF6+5,J45XNW1%42A85ZCM8>;0VPBHGT@"J@^_,2A])>3D:*0M-\L#
+P5BJ(BU1COL/8] ^^1Q/9]<BT9,!I]K8$";AI4YF\'R]?D5FXO/W7J>D7N#-:NDBM
+P1$^LT8@ICARCA(NX$[XUS)Q=E ZK_" ,MT'3=JKD@E8S.< 'YD"5%KTO#[A@B)E8
+P<*>W0I"$>QQRC<P'3=G.!TIT_V@07?GBJ5KGKEZQ&2O7PF@5<NRA'M2\3:,+5N./
+P&Q9R+J(;?)T*DFA^./Y8O6+Y<WS/AK,VZ-@ZZ2Z!N2^K@G]T*D?YJQ)U=@\/*RV<
+P:D[13>!M(XR<7 ILFTE?;J][:6L_W_,3TXZ:<!N[=??M&F#(OA?TJ)'2N0"$+1AS
+P)2EBP)SA-\:I7<,XN5 LSU4VY<5(^*:H!;D#TL"44C9 T(,W/)?*DVD$@=XS=X+Y
+P'MZ^9^ZK!W'J7'N=V/B!2^(M:?U?6F-U[GF"Q*QFWLM,07#Z%[%%WVE/LX>A) K6
+P)^ ";CY@ I3)Q]I-&:0O1-HFIC[]BNF/(!KZJ;R$E(ZP*06DC9U%_H<"-0CW?'Y]
+PO?6PCY^8-)4.ER_LUXHWKRD[SM>9O19>ZTM1% ]+VH^^K[,D0^'RC]63//X_?.0,
+P\UCY>4)=0,02@UU,C=B(D[(@G)EO.4GD'X&P(_MJ!1Z+6@07*S-D2D-GH';=WT=>
+P<Z;U()05^;D<LY_TD"B9.=.X6_X962)22V1Q9.0]_^_=;64Q\'<PST'-_J[,K$(C
+P+^UP3XJU>*4T2/D<D2P*(LIY@VHQX'GNHIF?,&=)S-YSZ)[T&19<H2Y28<Q@I =;
+PCLQP^;Y![XH\2[SBLBO$A=(^3(GZL,G2(5;3'HGQX7C#+8A[1^\4>?6@.@/]*1(U
+P0R YJ8A>G2JNK^Q>%G-<F7@@])=9S5PKE2.:5Z2)7>3RP/7AR')@<P'/1ZE>=4_6
+PS']')B)O:-1)GT9 @<NG2?S<>V_=+NGYVRC0T.D'TU.J=DEG_B0T>9+KS&G;E(1[
+P\RV^%M:=\'&ZJ0 J(N>WF*2I2TBQN22O Y2BLK*OS$.K:K88^)A)B5'"]4U0YCGE
+P8>ZN#LYJ[>\8GGF6UT;,Q$!_59@18:EYHR1KL:K)\=65PQ='^P*0.5N/CHA_&7%Z
+PIG&:+T&O/6@N]X()NVVWZ" ERLS6L0HTYUPK'C_R0-E*N+?3;HJ"Y+RID M.1'>B
+PN<OX0)"U=RR+@@WC:Q(5E-N[]2-3]++:^0/ZM>+(PZZ28B(2I@$G*#:R>\:+UMW]
+P4%4^?KN@P":S[XPX \\$I$LM98>[*NVD%R$Z%<<9+'<GGHZ]I.%K)D][>B(R':#7
+PDIU'(21 ]J]X\OD6&7M5)0KY(<&Z59%\.'-JVE8G%P"7118J88 4<T)T;C:2C6]Z
+PHM0&*L__F&U]VS-OQ],I"AK[IM\?< K/YIW J SA#/* RERR0+>*F;XR+P9'AS_S
+P=L*Z!$[$C-^JL3REI0[5*Q\W8AW.C$$T,RV*O?6/[ #D+U@:CU"/>#$:GF3>G14Q
+PT*M!IN)D:/;+(A4%3$0(6O,,OSHWDLMD_THRZ-X[INF+^VR[/E2$G+X,:?D7, (Z
+POZB]*-A8H21E>W>$0]?;W G*_QP/BWAUKH0-9XNTUB"FAB],4$Q_*0>4Q_J@,=I4
+P-<[H@RPQD?=&QK34$&<K(&0HQ5]31TC7Z38H<B4:JK:?]%D0Z56=)?KG=WM@4\0&
+PXRPR\AO@#'4[<NY:GQ0,>)$D3J?O:D+060:R*QA"VB,PPS2!%<!;7@AV3MR'NSDM
+PK--WL#U_,G4VP7E)=RVX8Y:X1I/TZ8\X4ELHS<H8[G=3 :B:%?UVB6UVFFV787G#
+PRFK[G===P2 <\5[-V&SLKZQY,+)YG.>%;HSRU3:2SQ#*(J3[DY[IX47?2 I)MJPR
+PS&0VH!9F/$GA%KH3';F/W9AP@!).RT+P'NFGK^<WL>F^WG5K(NK]OUA!/81 H,5>
+P[-/";N1BR3AP#(E<T_H@9$0%S;.CYV14<W*9:MT8#?K]SJ7&R"A"EAZO%?( F@QF
+P(H2FY5>^&JFE$Q?Q:A_SJ'#&$XXC9^O(^J#:!^@'!7_"(&$U]X'@5XYR=&=(M]G&
+PV@\E:\[JR/XD.ZI_-E0?P1J<W4]'MO17A2R9JJ2#J!YCDG2K@]P]!7OEWNP^%D=I
+PH)P2ZD?7FQQD\?=G,+KP-W.H^<(N@'!A:B["#TWIO\@'[NVT5V.9CBB_$TV!?A@9
+P)AER$/67RQ)N%07ZNK;Z_N&I#3>*MR=3O^Q@Q4<OUV7:J]>!V4K8"3\A5E&@PCF9
+P&!JS59S&!06C*M6/LOG6J#2L!E>#J=FR7@*=T%^MW7>C"HZ0SUA%<&GC,0($<C2/
+P/WTJ$^1ME"QB@:-><6=U\J<\?O)%;RTN+=:.<G,$W%Y-!T>FD9!_5A ECD^I78T-
+PD+:<=/LGPRZ+D+(YH1AS\(_7:;_=UBHCAA^$/A_45>TE[1^'FX+#\3!81Y:,LQA@
+PX??-7H7ET" I-"<-%1ZU'?*.P\*PF JKUU4+@Z](>O9O]*[W5PZ,Y?V4_%] "N19
+P2.'+P]2-UJE[#7"&<U_$SN@?9HH0FLXWX:<=3CJ\)6K8R:T"?[<G)@*^$8DUMB2I
+PYPD2OV9/J?X%U(%5]S,%MZET.N<7.IZW4-Z9T^%%".!(NML_N;K9KR'QH/?.WM1M
+PD[UH G-WZYF^^6/<XK BF3*\,Q2Q!0CDEWEK<G)G,3N;N#-'@537)M4.)K9)'+D'
+P'7XA=Q"N"NN('I8>@)B*(SN>,%WCZ?"0D5HB-^B6RQ/#TB6_=Y!I:9?GW])R=702
+PU6 4:$EC>P$19X\KW" T^;BG6#@C:'*ELB3Z<W5'09N91E5;*)T8-Z*Y^!$E# 1Y
+P6Q!^ 8JL["+TC_-E<+&?\7;$%M13IF?@YSVTNZI"%H9GN6/DGM@V9 " L!XG4\0 
+PJM T]0@WG>'RWPUO,\,4JO95"ME!W1L*A/#;MJ5POJZ0M.Q4J+GTD *$^R!$:[)3
+PJY!9FQ4./(S9$S/1F(*YE_8J.WF$%:48ZE\5>8YY;/YWXS'U%='U0OD5[W)*MY-Z
+P#P*.X4ZE'XG![E:B%H]9@5#\U/\@?K.06CICWD#N12FY#7XKWX_N/\M:$G7)WX6R
+P%<8I/W17Y(L?Q,:G.AAG+:\M2\L7>F-T(^08+NYOZ+P@ TW*M[A )C4(9R6<*OE0
+P8_K9QXT4]^*,M >TS?)>?%"-5>U,BH[*0SS.X_AW 2E.\N@-%@.Q1TCG_=DZ*(/?
+PE[&Z,4RJMPDL.Q]BN#)G6$89KO@\VC_=P^4ER[2OV?87=?^WB>B\RO7)N;L/6<4G
+PD\-13IM4<L+?P\O2QM[3257<#G+FX%L<J/)%,KP,MW@K0,>PF@I<Y\[;,&YKR\AU
+P]]WVM)K_UKZL/TE<^.31Q^G-L)2H[K6OB:?AQWW<9 6AT,WZ&C?SK])3U?;F\]4A
+PO2T;F<<DP;L0.9[\7 PT]^]G='NWE'*-N^&-O\BU.'[N8=6N=R(T<^7_O6W\(Q11
+P0)0X[3!9"7=0J:7:19U#LT9C<GV4HOD\)-*I#.&(!1KW"L;O8IOUGYCP&3O*=-TA
+P1QMS5:_-8[KA'_9DQGU27Z^!Q+(N1/3.A/&[MB#+>Y< CGG^40]]&7LJM.%]1J\$
+PSG-,QU>C2,9%,L/_1/C2U;,^1ON-I%BW-J.?UQ)AL:!*:AXI3@8KU-3#=;]1>3^3
+P3DD&I3AW9W/#.CT6+M>6/B<T3ZMK$DPY5MV'-K7A4@1:YT%I!1\0>;MP]6A-4YI@
+P #8G#S0AD/QFJHY/@KN['M[2LC%FCC*$(3R.S=UF9, P2S4@],0;[1R"VVC@(;9,
+P=J>SSW[ F*Y,B'?'6VT'Z/.,;+?Z)*H&7JVCQC2UIF+[ORTD%XSTF+QO6A^6*@*"
+P];-Q@1:.Y 83U=LJ\C^!?DV%MKZ:Z;0/)?.U_+.T[B]T74\U@%*/!IG$KTU*F38^
+PUCT 'N.7'6!JB>S,_!U^.(B[BB$QT#P@N:@;WC!7?&*@99T[3NPVY87A7728C81P
+P/HBIT!+E+W)]V?BW8@,VA^L+ -6>OV#@@'.Q*\;;=FCS*8AU:!%$D%ISZANN;[^]
+P^?;^UX8-S6N/L!%9WW_WQ_""HD?$C7Q%R@H[1XI.K:3E6JD?^WZR\?]8%R]IBKOZ
+P%'0KJ 8+_0VXJ24+KZZ1=S1EE\VC%U:=MNB:VJ)EL!@,QW"@\T.PC9?2U'H))EN:
+PQ-M;K=]F[D!X= VI;RRY5Z];5BU^F;-B6U*%!=/AZVCMFK@,>TGQN-X\V3_72"R#
+P,TJ6:T9B_B!CGRSF5S:K. %92,\LTK?_A;Z]^/,.P-9B/O]WY=@G$DP(FE^BHF,H
+P"]5 H*&7$DGL+[\LA;DK?3BQ+$0;@M-V+:18$N BFC79(JSH/^V*5S+0/>L]3SA>
+P)7:]$)13U":I7SB-*WBR(2O7&8ZV(FBJJ4T,%BO9U3*,%0Y\J&JK1H%F@GDQ"B3;
+PH9H;\^<^^L]3A:<SQSX%/F7XQKR\VB^NI<@-L5,]8(VT]-Z>%!C7X8^VU'>!=2__
+P ;I ;+A3?N,,&BYAI7D$8_BYFSGI-ON  9I4QW1I.6D_9CFIHZ'RKC[;U2%L>$"R
+P;9!.S?;E)>L%@0K[>HY#J*R6.>R+-=H3G"<Z@Y^;\MU)<H#MJQP*[)9O6%=0ZR4;
+P+"1]\^FW8;R&#5+L0)K"FKM4]$W<1L.BK0DD,4T/1INV[9D\;GPHUPV.ZP[&" G?
+POV!?E?/%A@GQSE7779>K0IX*NY>@E.=&E.QYP27FL*C6B'Q/N:OF3(/_;NQ]FDE1
+P*WXF&H(WZ<=OH@Z,$[4VX?Q,_QCMO< 3G"<V)]Y&%9QPE7R  /D?Y_9@&.$15L>E
+POI_$V>2G3H/22IYI'PF>&L:V+K43^Z1^PB>&TKC=<AQK>$*\X)PF5GD?PG&K$B)]
+P(?9%>(56^O?1!#SQUGSD;,0=I(X6P)H3F1Z_(/G-L<'2#:!_AY((;X1EYK(3HQXK
+P7[E]'2(1MC;B-6-F_MJB9).9FKANN''6ZX<VL3CK?LJ:X69[")^[:IB(+);6E&E&
+PVJ:C_\X&"C! /#"]T,I3QCHC2Z,61@#VBC/"T]<5('TE[?X6@RH<[A]I1UG'YJ^ 
+PRFPA1,G"JL^EEO"Z4G!5$^8!H:&5!$!:6WF779WI01KZ!:_J#RI_,%@\DFS6V388
+P/J"*$A;S</!MP^,I'E+M6%867,O33HLTKSEM0P=;8L/]]/^JM(_5C]HFE:K86-2\
+P*CT-,"R+'+"M8T,8"D.^0 -/YQD!%>K9X3-56&V9 __"A&"[$2*M5MX)*1.*YR<$
+P203X^=<2I DELD7)5)L22(J1MX<[!N>3M#%M1N,J$3+??CJN>S8+M;O97B.3IM;I
+P@R1_S)\1U( 6F'8;?\AQ4"QI:6B9Q@/GC?+NA(V]<JWROA__3#P2+$"PX1%FA' ?
+P#=0#,BDQX9.D@D?1Y^R.A%V\4(5W?R3ED)^O(X""V]@4K"AR332=WH;ML68J7L5)
+PLT+99$W= *8E-CT?('0>:K$Q2XVY2D:/@UEVRKN$C'YC@DTH-/0BLQ9CUJBPPFAF
+P,M;"!&#X7I@-;"^JD=P*X02(BWXT.B-6P) 2['2.;8JR#8*(':"R[(CVTZHTS$H]
+PTP'-[V)=1C1ZW3'RS7*7+M]UJN!K1W-%#)L!JNN[Q4Q7#N+IEQQ 874Y*<T^ ?)J
+P5ISI5IH0/62MP750(;\_<I_#%1F9XJXT& M&U4O(Y!B\+BS>5*?Q)1<7)574JQL0
+PM@S+(S)M!F/LG,],6S]=&$!M'? 24N3R6R:#>](V&!R(%,:C]IE*NW\G_@G&&&(^
+P3*'MF"4>)M1I+R5)\/YZ#,@B7YHT'FVRI\+"I=.0[$ K0=B]D$6M(H6A"^_RHR3@
+P6.UN6^]RZS4A&'IS+1/,D6R [DS3.]4@2$ANRYABD+!75OK^@/@)-W<!UOP<J764
+PR?#@,G3<-)X8N<^;YB$TH>K9%D-=O6+2];\OPC.&NEOV9 ;4]ZVE&$W?1(?LZA9N
+P,'K<D3;]&+H.9,=N:7[<AH/R'C-3*1QU6;H@H#"U<;,)9Y,"GPT'K]GEGEOG'/_\
+PJ &,H_0;R9 87Z+>9BV8L^0UQLU[_@+\HH3XF59KE!KC,Y,AW.CIVZOBQX&1Y_2R
+PQHR<>>=2/O5Z67>T#UU^3"K,V#% AL-&YNPP:C2;>HS"R=P2J.:&4>EOZ];JYN0&
+P=A.JT9$+XG&3E@;CQLTZ6D%[(=U.G"&JAN=_#.(VJ-1FK;6L?APS5TDJSHLO=3G:
+P=RN%,.JNI$2/I1 [L2S&90E._;,#CXJ8SS9G"!+=H#I[R35NK-E>B< 3R7H+X:>4
+P'J5&Y GFXD.\:MX ;L;7H>'E%T;Z=Q\W(S5R.]:;./$=4,*1,\=DC)<'\ZE:T-TE
+P6HE[ [+FS7,IVT-1^U"#B4$[6E^'OB7=%!7&VATU+P*(EQ*MRTGAMLB.6ZS&,IV0
+P7$@34N;V#PY/AD:DT ?W)\>*] K2]KJU5O)Z86_Y/C-(F0;/4PV;-<1:A^\:)@5V
+P\4%V%PL$CC$M"_(:3Z0"2!:[C;G8'RF*<<L;_XHKQ01FEJFQ$FH=FY(=9G, -EU;
+PB0OHN3U8:(I<F(I!7QI(VTQ1/&EX?#H+QX)RXGT;:9$\8PEKI&CD(M(BU._"QV@"
+P023O6]-"]:??10U;1N:,+_H["5N.&J$3&EENX$W2 )V-0E/<<W;'^-W83>&065[I
+P A?;:M%AB<=/&X32],Q0$/=LU#UQJT6TDCK+U7"QS<O>IFV5>$")%Z@W8ZY21/3X
+PR+M'3:1O><:O&BOC\@4S"^6W1<:YX.J,++'$#OIK]F+TM&]&-[](DQV1MF^OS$N\
+PJO;4P5-<6W&#0O^:"5X9\?7C+I>4_-N_I.!;J=5]YWB3_V)=A.5;;_$#R);G%@(E
+P$KW/0I0UV##B^EN]8_<CQ$=9&6%&03;,@ (6\^ZCJW@VR.!#;/%C]TPH%GD(#CF_
+P\=DU4F+-YLK<0_R.KWJ[6-6@P@)5&Q7[U2:LTBM@R4(RR*6'--REAG;Q;P!K%]6<
+P?( CA9^(+LPHHKJU3(,_Z;V_W\*1C5!ZSSV1):0.F5M)<+Q^V.C,YP99]J475>H?
+P%<8X8BQKJNT^RO%N_BA[O&]%B:H*G=ENVHCF!_JWF"3/#(<L(,"B$.>34F']4=!#
+P(VXQ!EAKW\\2\C'LU@DI:0S""5^[T2KX#&I?>+!(0NRW;(*,/(>UQ@-+SW %/OF=
+PO)L.VV^0'QE\V!EGRS> * ( H- 8U!8;;$(HV@5W4CQ>G? **(2R$2,@?Q!(L7BH
+P>+CT(6W49#IZG.6K:!^&-'\8F%"SJ[9=->U2ATQ8<N) @S%3'TW([3=Y6IQ*8A]F
+P0,:OU]QJ:&H3.E&GS4.PT/@H:XT.(*B<@YJY.E])9!ZY[Z&T!,XJL2MZ,C)^]9N(
+P*95*^..XU.GLK3$KL?J(SMS5'KJ*_':&A2XD]LSF?&*^?X@TUTJ3,DM5>J3R/,"Q
+P,K,\?&S435&H(?S3R>IJ*K7(PZNEJC-(;=#6J7%DY>#+M[M<X;[U_(;7E %2*B^2
+P#UU<0PL_QGT*<TFN,F897#8XVRA_B^<,F,N%1)\-AQQ<L3QS2D/6K'W>H#?(%O8:
+P#2Z(;GBB=^KB+=N2]BXT)RYAK* ^;%IU@S-#L>B0I@$%G!SO:B(S)>T/M3UMB>*C
+P;&["P;A:!X%8,1CLW""VI662^1)?6[MX3&0 @?<B?I;!3R6AKSS5M"]Y4SR$-8O.
+PL3#2D>Z?ZJ[9^XNW&UHNA[=2I!T6GL];1QM_T7GTN.FT[K(D$8[80B:=-\I),C*E
+P/65FR=OT4,%A%>8??S>U&6:-NI)V++!+6/-00]N?K /GEPE69P(!J4 %*.K5'F!Z
+P26_UU",!@V.SG]-G2A]'_OG/3O"&E_"_51MY]1/QPXW"!#4:"ND*7VTP!\$,)!O+
+PCG1:[!7_4\LGF5Z3%,7$6^S4:ZI7_![QKE@!2&IE[!)?'QAX+R:N,#&VP=@CAOLU
+P#5B(3NNCFB;$7J\FK'#Y5A$(5?+?(Z=8;9"+9_4.,6-FZB#(59?;4U]*84L4P0L.
+P])<XRC%WP!\5FDT 7T=4N\G^_?>%!61>G_P6F5W,^DJ03@O=W'WA7(=]"+7X&5&0
+PXGZ5*AE]1P2LQQ1A' RQA>$XVJRTX*D=&4>$<0Y<E+K$!=V$WX]TC@.1AR^)94!:
+P,V0^9P-PL#H&UG@;EP\=;DQ<^;W/;.2%SRKEESM+:I!@:I2ZLRR_E<-RIK58J[,@
+PCZX!D4H:T1--!^438: 4,;FZX/S]Z+$2)1+62 2$7-#X1+!>OZ/],:XTLL&X  B'
+PTEF [1&*?]'DAP+(:]=T):6'18(6[J1&44->7=(U#OAIC%\_1IH,=98QOZD('LB]
+P(Z<+PS+*[!2G\*_XP+Q[, "'%);*T_O*+U-S:%NT);%QZH-O9^\_VPCF3? MUP=6
+PR<)'>>?8X0D[^TTSFZC/)\U9M(:#/_P7?B=70XUQ9Z=",]%8ON,Z#;I@),.4J\U[
+P+I;IKUE?NC#E7R;%L3+ZM:UL9!P3@ZD(M)@.*[U:]/BBFE<<.^-0!6A9;T<83@FW
+P,S9B,LCCL[[92,YW4*K?^I(UU%'M%CX,?1G(Z5=D;_#\A-)BHC,Z='[>#_X5G8I$
+P7ZW]K*B3:VM?[2X,LGWPP\WI$E^F7H'3#F&-#(_L18KUCSZ8* WO9L?V6[(-T/)P
+P8UYA"!OGH6PA L)G)8$%TC+S5BDE6_0XCPN?PN6R$5\7'-K"^:].F2V0-OQ<@/-I
+P/TG7G27 .4*.,=S(6V#B8\[')SX<6YE9QOO8=Q3K[@RWNSEL+OVLS2OASPD?>3Z:
+PE6Y?3\[R4F$><^Y$K&RT+8P#PV5E19Q4J01N'73\<D//VD1R3Q<86PYU^45ZY0=F
+PMGI[+R=G@_ Y"L/&P[80[LBB6/MQ6Z>!.H!.2N286#2P'P92Z#*:R'  HV%)R9>O
+P\^?6GMUN-Z]>!"6DL/Q#C.H\W'1BG8!W4$.*?+XA>IQ5+JAW3OW5T'(H0H@FTF6@
+P+S:SQHMUVNE_G(1=,H!!=M %2(C8N$=/K&-<^"VQ4M(!\W^%I  "F(N ?:S^M&M"
+PINI4R=*-432F%[XZ;/S]IZ*?F8L-Q(LF_+TWM">N^EG#D+ZQ-I';"2=2STY2&[+_
+P+7^<"/".=?><8?8T2Q4&%GTXSD'O<,T!):"G43[T]&3FQ^*:G6M;LL.'0)I*PQF@
+PE@U3:).JJR& EUJ!/'(X <:V,Z[]HEP>6;A[]<"H8S8D%2VL?7MKH,MRH:I7V&OV
+PA#([KF]]KF:77.SYACUO%-M49_P=*9@U"R?-EJ*Y$%N(QC=>&4[G+'A@67;-UN0X
+P<&WXMJ,.XD*644J?3[0=RDZ/?!?0-YMRGCQQW5RC18A(R#WR(=/<HHIM.+6PA-1J
+PEC,.>-A/V";$R0P*Z(]&WM'#/8)@MCL92?;?"^MTYU_O<$@PW[S[-9TG:?7'DKC4
+PK+^G/,GS*';4K F)V/<'6/ TA.8'I]:H:23NVX_UK)EA86ZF5N11AP'39&6*).J3
+PUN,R63..X9E0GF24R:^F<QOXD7+R09FR?9#/&;^8Y0-E'<UAH]$B"*K^1:>R:AZG
+P5IORCD".WU*=@]X/YH,),#_8*O.S*%P$G;Q%VVPS**&_ V._<!^WL3E:14_,H%Q8
+P4I^&8I<=DLG'H_ )H#@M%R<;'"!FDRXW_M$#![9$7]XJ'=J(P],QJ)A/@,M  3W8
+PE$CD9Y&ZU8V2&#.0LN&^C\V!C)Y5,!_68@N)S8/VR G%^FD_Q M\A:GLB@;5HC;J
+P6W](*L$W@[SPI<&.;6D-E/H_&\%/:^&3=6=0!EC"2N5I!=Q0XC967QH^;_P;:B%^
+P;9,'5(E*-C!-XU4;0RRLO&:0",L/F.S=[+;-"00P57"G]3]C@NZN,6UB8>=6*KR"
+PMJI]123J3LO)+U]U=Q^AFEH>IAEBFBEZ94VP</ON_AMT&+[J.,PW$CB3&8NMP()#
+P;81/JM,%]Y-KR-0</;$T";R3]<Q,W-<]%XX&E8@^3+I"U1_O>BQ4 9QC&)?]-S@O
+P08@XBW>33'WR8Z"5G]-MIA2D%/\-4"/W=2XKKODJN;XU-X<RGB]QFC4SA'OHW5DO
+PZV,3.8'S)@;DKS>WD8B[TC.2WWY*..HYQ\)%H%[<%LCNAEI*GMM!45"SC27SM95X
+PT+8EMJUH]8X9H=3OIV'Q#"7((N[J';Y=S3,*VKT$V\=0W@:<&\]H7 3J@^NO[(X@
+P'@Q8Y6^@T/0A']9 P)[BS<(MV?[1QJ?;(CZ=D=2E*7HMW2V":TNS74/'L1IL3=%"
+`endprotected128
+
+
+endmodule
+

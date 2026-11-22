@@ -1,0 +1,8 @@
+var g_data = {'dummy':{null},
+'work.m_ahb_cyc_coverage':{h:'18',g:1,z:1},
+'/tb/m_cyc_coverage':{h:'33',g:1,z:1},
+'work.tb':{h:'10',z:1},
+'/tb':{h:'20',z:1},
+'/yuu_common_pkg_sv_unit/i_cache_coverage':{h:'958',g:1,z:1},
+'work.yuu_common_pkg_sv_unit':{h:'9',z:1},
+'/yuu_common_pkg_sv_unit':{h:'944',z:1}};

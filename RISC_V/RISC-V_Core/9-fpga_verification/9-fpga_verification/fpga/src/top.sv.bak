@@ -1,0 +1,83 @@
+`timescale 1ns / 1ps
+/****************************************Copyright (c)**************************************************
+**----------------------------------------File Info-----------------------------------------------------
+** File name					:	top                                                                   
+** Last modified Date	:	2025-09-01                                                                      
+** Last Version				:	1.0                                                                             
+** Descriptions       :	top                                                           
+**------------------------------------------------------------------------------------------------------
+** Created by					: FPGACoreCG                                                                     
+** Created date				: 2025-09-01                                                                     
+** Version						: 1.0                                                                              
+** Descriptions				:	The original version                                                            
+**------------------------------------------------------------------------------------------------------
+** Modified by:				                                                                                  
+** Modified date:			                                                                                  
+** Version:					                                                                                    
+** Descriptions:		                                                                                    
+**                                                                                                      
+**------------------------------------------------------------------------------------------------------
+*******************************************************************************************************/
+
+`include "./../../src/define.sv"
+
+module top(
+  input   logic 	       		sys_clk_p     					,  
+  input   logic 	       		sys_clk_n     					,  
+  input   logic 	       		sys_rst_n     					,
+ 	input		logic							key_in									,
+  output  logic [3:0]	      led                 	
+);     
+
+//localparam	FILE      	= "rv32ui-p-addi.dat";
+
+logic												sys_clk									;
+logic												rst_n										;
+logic												riscv_rst_n							;
+logic	[3:0]									led_pattern							;
+(*mark_debug = "true"*)logic											key_out									;
+(*mark_debug = "true"*)logic [31:0]			 					test_case  							;
+(*mark_debug = "true"*)logic [31:0]								reg_s10  								;
+(*mark_debug = "true"*)logic [31:0]								reg_s11  						  	;
+
+assign	led_pattern	=				{reg_s10[0],reg_s11[0]}	;
+assign	riscv_rst_n	=				rst_n	& key_out					;
+
+clk_pll u_clk_pll_inst(
+	.clk_out1     						(sys_clk        		 		),
+  .resetn       						(sys_rst_n      		 		),
+  .locked       						(rst_n         			 		),
+  .clk_in1_p    						(sys_clk_p      		 		),
+  .clk_in1_n    						(sys_clk_n      		 		)
+); 
+ 
+led_top u_led_top_inst(
+	.clk											(sys_clk						 		),
+	.rst_n										(rst_n			  			 		),
+	.led_pattern							(led_pattern				 		),
+	.led	        						(led								 		)
+);
+
+key_top u_key_top_inst(
+	.clk											(sys_clk						 		),
+	.rst_n										(rst_n			  			 		),
+	.key_in  									(key_in							 		),
+	.key_out									(key_out						 		),
+	.key_redge								(										 		),
+	.key_fedge								(										 		)
+);
+
+riscv #(
+	.FILE											(FILE										),
+	.AW												(`AW										),	
+	.DW												(`DW										)
+	) u_riscv_inst(                                			
+	.clk											(sys_clk						 		),
+  .rst_n										(riscv_rst_n						),
+  .test_case								(test_case					 		),
+	.reg_s10									(reg_s10						 		),
+	.reg_s11	 								(reg_s11						 		)
+);  
+
+    
+endmodule

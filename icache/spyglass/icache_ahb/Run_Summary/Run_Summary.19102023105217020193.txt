@@ -1,0 +1,15 @@
+Date Created     : 19-10-2023 10:52:17
+SpyGlass Version : SpyGlass_vL-2016.06
+Project Name     : icache_ahb
+Goal Name        : rdc/rdc_verify_struct
+Scenario Name    : default_scenario
+Top              : icache_ahb
+
+Message Summary
+Severity   Non-Waived  Waived
+FATAL           0         0
+ERROR           5         0
+WARNING         0         0
+INFO           10         0
+
+-dashboard_data sync_crossings 0

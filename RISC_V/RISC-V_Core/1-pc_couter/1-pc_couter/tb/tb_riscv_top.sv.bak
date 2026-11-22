@@ -1,0 +1,77 @@
+`timescale 1ns / 1ps                                                                                     
+/****************************************Copyright (c)************************************************** 
+**----------------------------------------File Info----------------------------------------------------- 
+** File name					:	tb_riscv_top                                                                 
+** Last modified Date	:	2025-11-01                                                                       
+** Last Version				:	1.0                                                                              
+** Descriptions       :	tb_riscv_top                                                                 
+**------------------------------------------------------------------------------------------------------ 
+** Created by					: FPGACoreCG                                                                       
+** Created date				: 2025-11-01                                                                        
+** Version						: 1.0                                                                              
+** Descriptions				:	The original version                                                             
+**------------------------------------------------------------------------------------------------------ 
+** Modified by:				                                                                                   
+** Modified date:			                                                                                   
+** Version:					                                                                                     
+** Descriptions:		                                                                                     
+**                                                                                                       
+**------------------------------------------------------------------------------------------------------ 
+*******************************************************************************************************/ 
+
+module tb_riscv_top;
+
+parameter	AW	=	32									;
+
+logic       				clk							;
+logic       				rst_n						;
+logic								jump_en					;
+logic	[AW-1:0]			jump_addr				;
+logic	[AW-1:0]   		pc_pointer			; 
+logic								start						;
+
+pc_counter #(
+	.AW								(AW							)
+	)u_pc_counter_inst( 
+	.clk							(clk						),
+  .rst_n						(rst_n					),
+  .jump_en					(jump_en				),
+  .jump_addr				(jump_addr			),
+  .pc_pointer			  (pc_pointer			)
+);     
+	
+always #5 clk = ~clk;	
+initial begin
+	clk     				= 1'b0;
+	rst_n   				= 1'b0; 
+	jump_en					= 1'b0;
+	jump_addr 			= 'h0 ;
+	start           = 1'b0;
+	#1000;
+	rst_n   				= 1'b1;
+	#5000;
+	generate_jump	(4096);
+	#6000;
+	generate_jump	(2048);
+	#1000;
+	$finish;
+
+end
+
+task	generate_jump(
+	input	logic	[31:0]	addr	
+);
+	begin
+		@(posedge clk);
+		jump_en 	= 1'b1;
+		jump_addr	= addr;
+		@(posedge clk);
+		jump_en 	= 1'b0;
+		jump_addr = 'h0 ;
+	end
+	
+endtask
+
+     
+endmodule
+

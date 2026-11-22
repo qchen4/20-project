@@ -1,0 +1,4 @@
+../env/i_cache_coverage.sv
+../env/m_ahb_cyc_coverage.sv
+../env/tb.sv
+../yuu_ahb/include/yuu_ahb_master_interface.svi

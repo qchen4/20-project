@@ -1,0 +1,6 @@
+var g_db_data = [
+{dummy:0},
+{name:'cover_cyc',f:1,type:6,id:34,tb:'14',h:'8',m:'6',hp:'57.14%',cov:['60.00%','Y'],g:'100.00%',gp:['60.00%','Y'],lnk:'__HDL_srcfile_1.htm#6',hdlPath:'/tb/m_cyc_coverage',parent:'33'},
+{name:'cover_cyc',f:1,type:6,id:34,tb:'14',h:'8',m:'6',hp:'57.14%',cov:['60.00%','Y'],g:'100.00%',gp:['60.00%','Y'],lnk:'__HDL_srcfile_1.htm#6',hdlPath:'/tb/m_cyc_coverage',parent:'33'},
+{name:'cover_item',f:1,type:6,id:959,tb:'796',h:'329',m:'467',hp:'41.33%',cov:['80.26%','Y'],g:'100.00%',gp:['80.26%','Y'],lnk:'__HDL_srcfile_3.htm#10',hdlPath:'/yuu_common_pkg_sv_unit/i_cache_coverage',parent:'958'}];
+processConsCovergroupsData(g_db_data);

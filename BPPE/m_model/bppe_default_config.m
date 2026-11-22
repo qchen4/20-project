@@ -1,0 +1,37 @@
+function cfg = bppe_default_config()
+%BPPE_DEFAULT_CONFIG Experimental M0 settings, not frozen hardware parameters.
+cfg.profile = 'M0-morphology-v1';
+cfg.fs_hz = 100;
+cfg.tick_period_ns = 1e6;
+cfg.channels = 1;
+cfg.primary_channel = 1;
+cfg.config_epoch = 0;
+cfg.dc_cutoff_hz = 0.5;
+cfg.lowpass_hz = 8;
+cfg.warmup_s = 2;
+cfg.beats_per_result = 4;
+cfg.min_period_s = 0.35;
+cfg.max_period_s = 1.5;
+cfg.timeout_s = 10;
+cfg.max_sample_jitter_fraction = 0.25;
+cfg.max_channel_skew_s = 0.002;
+cfg.min_ac_dc = 0.002;
+cfg.max_ac_dc = 0.20;
+cfg.max_period_cv = 0.20;
+cfg.sqi_threshold = 150;
+cfg.sbp_limits = [40, 260];
+cfg.dbp_limits = [20, 180];
+cfg.allow_demo_model = false;
+cfg.model.configured = false;
+cfg.model.calibrated = false;
+cfg.model.demo_only = true;
+cfg.model.id = 'unconfigured';
+cfg.model.profile = cfg.profile;
+cfg.model.feature_names = bppe_feature_names();
+cfg.model.center = zeros(1, 5);
+cfg.model.scale = ones(1, 5);
+cfg.model.beta = zeros(6, 2); % [intercept; standardized features], SBP then DBP
+cfg.model.feature_min = -inf(1, 5);
+cfg.model.feature_max = inf(1, 5);
+cfg.model.extractor = bppe_extractor_signature(cfg);
+end

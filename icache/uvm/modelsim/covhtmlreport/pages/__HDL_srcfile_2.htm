@@ -1,0 +1,162 @@
+
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+  <title>Questa Coverage Report</title>
+  <link rel="StyleSheet" media="screen" href="../css/hdl2html.css"/>
+</head>
+<body id="hdl2html">
+  <tt>
+<pre>
+<a name="1"><q-n>     1  </q-n></a><q-m>// by a subsisting licensing agreement from SiliconThink.</q-m>
+<a name="2"><q-n>     2  </q-n></a><q-m>//</q-m>
+<a name="3"><q-n>     3  </q-n></a><q-m>//      (C) COPYRIGHT SiliconThink Limited or its affiliates</q-m>
+<a name="4"><q-n>     4  </q-n></a><q-m>//                   ALL RIGHTS RESERVED</q-m>
+<a name="5"><q-n>     5  </q-n></a><q-m>//</q-m>
+<a name="6"><q-n>     6  </q-n></a><q-m>// This entire notice must be reproduced on all copies of this file</q-m>
+<a name="7"><q-n>     7  </q-n></a><q-m>// and copies of this file may only be made by a person if such person is</q-m>
+<a name="8"><q-n>     8  </q-n></a><q-m>// permitted to do so under the terms of a subsisting license agreement</q-m>
+<a name="9"><q-n>     9  </q-n></a><q-m>// from SiliconThink or its affiliates.</q-m>
+<a name="10"><q-n>     10  </q-n></a><q-m>// ---------------------------------------------------------------------------//</q-m>
+<a name="11"><q-n>     11  </q-n></a>
+<a name="12"><q-n>     12  </q-n></a><q-m>//----------------------------------------------------------------------------//</q-m>
+<a name="13"><q-n>     13  </q-n></a><q-m>// File name    : top.sv</q-m>
+<a name="14"><q-n>     14  </q-n></a><q-m>// Author       : sky@SiliconThink</q-m>
+<a name="15"><q-n>     15  </q-n></a><q-m>// Email        : </q-m>
+<a name="16"><q-n>     16  </q-n></a><q-m>// Project      : </q-m>
+<a name="17"><q-n>     17  </q-n></a><q-m>// Created      : </q-m>
+<a name="18"><q-n>     18  </q-n></a><q-m>// Copyright    : </q-m>
+<a name="19"><q-n>     19  </q-n></a><q-m>// Description  : </q-m>
+<a name="20"><q-n>     20  </q-n></a><q-m>//----------------------------------------------------------------------------//</q-m>
+<a name="21"><q-n>     21  </q-n></a>
+<a name="22"><q-n>     22  </q-n></a>`<q-a>timescale</q-w> 1<q-v>ns</q-w>/1<q-v>ns</q-w>
+<a name="23"><q-n>     23  </q-n></a>
+<a name="24"><q-n>     24  </q-n></a>`<q-i>include</q-w> <q-l>"sim_define.v"</q-l>
+<a name="25"><q-n>     25  </q-n></a>
+<a name="26"><q-n>     26  </q-n></a><q-w>module</q-w> tb;
+<a name="27"><q-n>     27  </q-n></a>
+<a name="28"><q-n>     28  </q-n></a>  <q-w>logic</q-w>         rstn, clk   ;
+<a name="29"><q-n>     29  </q-n></a>  <q-w>logic</q-w>         m_hreadyout ;
+<a name="30"><q-n>     30  </q-n></a>  <q-w>logic</q-w>         m_hresp     ;
+<a name="31"><q-n>     31  </q-n></a>
+<a name="32"><q-n>     32  </q-n></a>  <q-w>logic</q-w>         s_hresp     ;
+<a name="33"><q-n>     33  </q-n></a>  <q-w>logic</q-w> [31:0]  dut_mon_sig ;   <q-m>//singal inside DUT to be monitor</q-m>
+<a name="34"><q-n>     34  </q-n></a>
+<a name="35"><q-n>     35  </q-n></a>  <q-w>always</q-w> #(10/2.0) <q-w>begin</q-w>
+<a name="36"><q-n>     36  </q-n></a>    clk = ~clk;
+<a name="37"><q-n>     37  </q-n></a>  <q-w>end</q-w>
+<a name="38"><q-n>     38  </q-n></a>
+<a name="39"><q-n>     39  </q-n></a>  <q-m>// System Clock and Reset</q-m>
+<a name="40"><q-n>     40  </q-n></a>  <q-w>initial</q-w> <q-w>begin</q-w>
+<a name="41"><q-n>     41  </q-n></a>    rstn = 0; clk = 0;
+<a name="42"><q-n>     42  </q-n></a>
+<a name="43"><q-n>     43  </q-n></a>    <q-m>//--- first reset</q-m>
+<a name="44"><q-n>     44  </q-n></a>    <q-w>repeat</q-w>(3) @(<q-a>posedge</q-w> clk);
+<a name="45"><q-n>     45  </q-n></a>    #1; rstn = 0;
+<a name="46"><q-n>     46  </q-n></a>    <q-w>repeat</q-w>(3) @(<q-a>posedge</q-w> clk);
+<a name="47"><q-n>     47  </q-n></a>    #1; rstn = 1;
+<a name="48"><q-n>     48  </q-n></a>    
+<a name="49"><q-n>     49  </q-n></a>    <q-m>/*</q-m>
+<a name="50"><q-n>     50  </q-n></a><q-m>    repeat(40) @(posedge clk);</q-m>
+<a name="51"><q-n>     51  </q-n></a><q-m>   </q-m>
+<a name="52"><q-n>     52  </q-n></a><q-m>    //--- second reset</q-m>
+<a name="53"><q-n>     53  </q-n></a><q-m>    #1; rstn = 0;</q-m>
+<a name="54"><q-n>     54  </q-n></a><q-m>    repeat(3) @(posedge clk);</q-m>
+<a name="55"><q-n>     55  </q-n></a><q-m>    #1; rstn = 1;</q-m>
+<a name="56"><q-n>     56  </q-n></a><q-m>    */</q-m>
+<a name="57"><q-n>     57  </q-n></a>  <q-w>end</q-w>
+<a name="58"><q-n>     58  </q-n></a>
+<a name="59"><q-n>     59  </q-n></a>    <q-m>//interface instance</q-m>
+<a name="60"><q-n>     60  </q-n></a>    yuu_ahb_master_interface  m_ahb(.dut_mon(dut_mon_sig));
+<a name="61"><q-n>     61  </q-n></a>    yuu_ahb_slave_interface   s_ahb();
+<a name="62"><q-n>     62  </q-n></a>
+<a name="63"><q-n>     63  </q-n></a>    <q-m>//DUT internal signal monitor infterface</q-m>
+<a name="64"><q-n>     64  </q-n></a>    i_cache_monitor_interface dut_mon(.clk(clk), .rstn(rstn));
+<a name="65"><q-n>     65  </q-n></a>
+<a name="66"><q-n>     66  </q-n></a>    <q-m>//m-ahb/s-ahb interface signal connection</q-m>
+<a name="67"><q-n>     67  </q-n></a>    <q-w>assign</q-w>  m_ahb.hclk      = clk;
+<a name="68"><q-n>     68  </q-n></a>    <q-w>assign</q-w>  m_ahb.hreset_n  = rstn;
+<a name="69"><q-n>     69  </q-n></a>    <q-w>assign</q-w>  m_ahb.hexokay   = 1'b0; 
+<a name="70"><q-n>     70  </q-n></a>    <q-w>assign</q-w>  #1 m_ahb.hready_i= m_hreadyout;
+<a name="71"><q-n>     71  </q-n></a>    <q-w>assign</q-w>  #1 m_ahb.hresp  = {1'b0, m_hresp};
+<a name="72"><q-n>     72  </q-n></a>
+<a name="73"><q-n>     73  </q-n></a>    <q-w>assign</q-w>  s_ahb.hclk      = clk;
+<a name="74"><q-n>     74  </q-n></a>    <q-w>assign</q-w>  s_ahb.hreset_n  = rstn;
+<a name="75"><q-n>     75  </q-n></a>    <q-w>assign</q-w>  #1 s_ahb.hready_i = s_ahb.hready_o;
+<a name="76"><q-n>     76  </q-n></a>    <q-w>assign</q-w>  #1 s_hresp      = s_ahb.hresp[0];
+<a name="77"><q-n>     77  </q-n></a>    <q-w>assign</q-w>  s_ahb.hmaster   = 'd0;
+<a name="78"><q-n>     78  </q-n></a>    <q-w>assign</q-w>  s_ahb.hprot_emt = 'd0;
+<a name="79"><q-n>     79  </q-n></a>    <q-w>assign</q-w>  s_ahb.hnonsec   = 1'b0;
+<a name="80"><q-n>     80  </q-n></a>    <q-w>assign</q-w>  s_ahb.excl_write_enable = 1'b0;
+<a name="81"><q-n>     81  </q-n></a>
+<a name="82"><q-n>     82  </q-n></a>    <q-m>//DUT monitor signals</q-m>
+<a name="83"><q-n>     83  </q-n></a>    <q-w>wire</q-w>    cache_init  ;
+<a name="84"><q-n>     84  </q-n></a>    <q-w>wire</q-w>    m_wrap_dphase;
+<a name="85"><q-n>     85  </q-n></a>    <q-w>wire</q-w>    cache_line_wr;
+<a name="86"><q-n>     86  </q-n></a>
+<a name="87"><q-n>     87  </q-n></a>    <q-w>assign</q-w>  cache_init      = tb.u_icache_ahb.u_icache_tag.cache_init;
+<a name="88"><q-n>     88  </q-n></a>    <q-w>assign</q-w>  m_wrap_dphase   = tb.u_icache_ahb.m_wrap_dphase;
+<a name="89"><q-n>     89  </q-n></a>    <q-w>assign</q-w>  cache_line_wr   = tb.u_icache_ahb.u_icache_dmem.cache_line_wr;
+<a name="90"><q-n>     90  </q-n></a>
+<a name="91"><q-n>     91  </q-n></a>    <q-w>assign</q-w>  dut_mon_sig = {28'h0,
+<a name="92"><q-n>     92  </q-n></a>                           1'h0, cache_line_wr, m_wrap_dphase, cache_init};
+<a name="93"><q-n>     93  </q-n></a>    
+<a name="94"><q-n>     94  </q-n></a>    <q-w>assign</q-w>  dut_mon.hit_chk_point= tb.u_icache_ahb.u_icache_tag.hit_chk_point;
+<a name="95"><q-n>     95  </q-n></a>    <q-w>assign</q-w>  dut_mon.tag_info_used= tb.u_icache_ahb.u_icache_tag.tag_info_used;
+<a name="96"><q-n>     96  </q-n></a>    <q-w>assign</q-w>  dut_mon.chk_haddr_d  = tb.u_icache_ahb.u_icache_tag.chk_haddr_d;
+<a name="97"><q-n>     97  </q-n></a>    <q-w>assign</q-w>  dut_mon.w0_hit       = tb.u_icache_ahb.u_icache_tag.w0_hit;
+<a name="98"><q-n>     98  </q-n></a>    <q-w>assign</q-w>  dut_mon.w1_hit       = tb.u_icache_ahb.u_icache_tag.w1_hit;
+<a name="99"><q-n>     99  </q-n></a>    <q-w>assign</q-w>  dut_mon.w2_hit       = tb.u_icache_ahb.u_icache_tag.w2_hit;
+<a name="100"><q-n>     100  </q-n></a>    <q-w>assign</q-w>  dut_mon.w3_hit       = tb.u_icache_ahb.u_icache_tag.w3_hit;
+<a name="101"><q-n>     101  </q-n></a>    <q-w>assign</q-w>  dut_mon.fill_hit     = tb.u_icache_ahb.u_icache_tag.fill_hit;
+<a name="102"><q-n>     102  </q-n></a>    <q-w>assign</q-w>  dut_mon.cache_miss   = tb.u_icache_ahb.u_icache_tag.cache_miss;
+<a name="103"><q-n>     103  </q-n></a>    
+<a name="104"><q-n>     104  </q-n></a>
+<a name="105"><q-n>     105  </q-n></a>    <q-m>//DUT instance</q-m>
+<a name="106"><q-n>     106  </q-n></a>    icache_ahb #(.index_bits(`INDEX_BITS) ) u_icache_ahb(  <q-m>//4KB i-cache</q-m>
+<a name="107"><q-n>     107  </q-n></a>	<q-m>//--- upstream ahb-lite slave interface</q-m>
+<a name="108"><q-n>     108  </q-n></a>	.s_hsel			(1'b1           ),
+<a name="109"><q-n>     109  </q-n></a>	.s_haddr		(m_ahb.haddr	),
+<a name="110"><q-n>     110  </q-n></a>	.s_hburst		(m_ahb.hburst	),
+<a name="111"><q-n>     111  </q-n></a>	.s_htrans		(m_ahb.htrans	),
+<a name="112"><q-n>     112  </q-n></a>	.s_hsize		(m_ahb.hsize	),
+<a name="113"><q-n>     113  </q-n></a>	.s_hprot		(m_ahb.hprot	),
+<a name="114"><q-n>     114  </q-n></a>	.s_hwrite		(m_ahb.hwrite	),
+<a name="115"><q-n>     115  </q-n></a>	.s_hwdata		(m_ahb.hwdata	),
+<a name="116"><q-n>     116  </q-n></a>    .s_hmastlock    (m_ahb.hmastlock),
+<a name="117"><q-n>     117  </q-n></a>	.s_hready		(m_ahb.hready_i ),
+<a name="118"><q-n>     118  </q-n></a>	.s_hreadyout	(m_hreadyout    ),
+<a name="119"><q-n>     119  </q-n></a>	.s_hrdata		(m_ahb.hrdata	),
+<a name="120"><q-n>     120  </q-n></a>	.s_hresp		(m_hresp	    ),
+<a name="121"><q-n>     121  </q-n></a>
+<a name="122"><q-n>     122  </q-n></a>    <q-m>//--- downstream ahb-master interface</q-m>
+<a name="123"><q-n>     123  </q-n></a>	.m_hsel			(s_ahb.hsel     ),
+<a name="124"><q-n>     124  </q-n></a>	.m_haddr		(s_ahb.haddr	),
+<a name="125"><q-n>     125  </q-n></a>	.m_hburst		(s_ahb.hburst	),
+<a name="126"><q-n>     126  </q-n></a>	.m_htrans		(s_ahb.htrans	),
+<a name="127"><q-n>     127  </q-n></a>	.m_hsize		(s_ahb.hsize	),
+<a name="128"><q-n>     128  </q-n></a>	.m_hprot		(s_ahb.hprot	),
+<a name="129"><q-n>     129  </q-n></a>	.m_hwrite		(s_ahb.hwrite	),
+<a name="130"><q-n>     130  </q-n></a>	.m_hwdata		(s_ahb.hwdata	),
+<a name="131"><q-n>     131  </q-n></a>    .m_hmastlock    (s_ahb.hmastlock),
+<a name="132"><q-n>     132  </q-n></a>	.m_hready		(s_ahb.hready_i ),
+<a name="133"><q-n>     133  </q-n></a>	.m_hrdata		(s_ahb.hrdata   ),
+<a name="134"><q-n>     134  </q-n></a>	.m_hresp		(s_hresp        ),
+<a name="135"><q-n>     135  </q-n></a>
+<a name="136"><q-n>     136  </q-n></a>    .clk            (clk            ),
+<a name="137"><q-n>     137  </q-n></a>    .rstn           (rstn           )  
+<a name="138"><q-n>     138  </q-n></a>    );
+<a name="139"><q-n>     139  </q-n></a>
+<a name="140"><q-n>     140  </q-n></a>    <q-m>//test program</q-m>
+<a name="141"><q-n>     141  </q-n></a>    test u_test(.m_ahb(m_ahb), .s_ahb(s_ahb), .dut_mon(dut_mon));
+<a name="142"><q-n>     142  </q-n></a>
+<a name="143"><q-n>     143  </q-n></a>    m_ahb_cyc_coverage m_cyc_coverage(.ahb_io(m_ahb));
+<a name="144"><q-n>     144  </q-n></a>
+<a name="145"><q-n>     145  </q-n></a><q-w>endmodule</q-w> : tb
+<a name="146"><q-n>     146  </q-n></a>
+</pre>
+</tt>
+
+  
+</body>
+</html>

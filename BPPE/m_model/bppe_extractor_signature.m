@@ -1,0 +1,9 @@
+function signature = bppe_extractor_signature(cfg)
+% Prevent silently using coefficients with a different feature definition.
+fields={'profile','fs_hz','tick_period_ns','channels','primary_channel', ...
+    'dc_cutoff_hz','lowpass_hz','warmup_s','beats_per_result', ...
+    'min_period_s','max_period_s','min_ac_dc','max_ac_dc','max_period_cv', ...
+    'sqi_threshold','timeout_s','max_sample_jitter_fraction','max_channel_skew_s'};
+signature=struct();
+for k=1:numel(fields), signature.(fields{k})=cfg.(fields{k}); end
+end

@@ -1,0 +1,14 @@
+13
+62 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_ifetch.v 1 bb64f04e6e71cb6a79b2aa1ec0d9a26a
+60 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_buf3.v 1 9aae097630bad172402284fb9a2f5e64
+59 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_dec.v 1 04bbdf2bec4c6c52e538943766700f29
+59 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_exe.v 1 c414258730a121b828327d823deb96c4
+66 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_exe_addsub.v 1 692747dba1e8a825e080f095f105d92a
+63 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_exe_mul.v 1 4c68c46dcf091894014c325db3ffa9f3
+63 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_exe_div.v 1 05fc0a06582124a58a11e9d24aa40bbc
+61 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_d_aph.v 1 e0a1f911c338158630419e57bed09e8f
+58 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_wb.v 1 8ecba25e24d2c124ce392a68d4007e6e
+60 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_regs.v 1 1b85fcaf194831274fffb0765a5a93d0
+64 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_csr_intr.v 1 bbd5b01228118dfd49f9eae002f456b8
+60 /media/yyx/B63E46DF3E46986F/new_proj/risc_v/rtl/mrisc_core.v 1 566123c2f9cdfa4dad8bc31b02f5db14
+88 /home/yyx/eda/spyglass/SpyGlass-L2016.06/SPYGLASS_HOME/auxi/gates/dw_interface_library.v 1 31edef577dc754376defee96dce9bc29

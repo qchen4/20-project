@@ -1,0 +1,9 @@
+
+current_design icache_ahb
+
+clock  -name clk -period 10 -edge {0 5}    -domain clk
+
+reset  -name rstn -value 0  -async
+#define the clk domain of rstn input
+abstract_port -module icache_ahb -ports rstn -clock clk
+

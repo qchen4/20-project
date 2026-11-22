@@ -1,0 +1,260 @@
+// ---------------------------------------------------------------------------//
+// The confidential and proprietary information contained in this file may
+// only be used by a person authorised under and to the extent permitted
+// by a subsisting licensing agreement from SiliconThink.
+//
+//      (C) COPYRIGHT SiliconThink Limited or its affiliates
+//                   ALL RIGHTS RESERVED
+//
+// This entire notice must be reproduced on all copies of this file
+// and copies of this file may only be made by a person if such person is
+// permitted to do so under the terms of a subsisting license agreement
+// from SiliconThink or its affiliates.
+// ---------------------------------------------------------------------------//
+// 文件说明 icache_tag.vp
+// I-Cache 标签、有效位、填充命中与替换路管理模块。
+// 由 icache_ahb 实例化，并通过独立读写端口访问标签 SRAM。
+// 公开说明采用树形伪 LRU；hit_way 是四位独热命中编码，replace_way 是两位路号。
+// tag_mem_chk 发起查询；hit_chk_point 标记下一拍结果；tag_mem_wr_miss 通知填充提交。
+// 本文件被 flist_dut.f 编译。protected128 区域是受保护实现，不对其内部行为添加推测注释。
+
+//----------------------------------------------------------------------------//
+// File name    : icache_tag.v
+// Author       : sky@siliconthink.cn
+// E-mail       : 
+// Project      : 
+// Created      : 
+// Copyright    : 
+// Description  : 
+// 1: manage tag addr, vld flag, rlu flag;
+// 2: use tree-based pseudo-LRU replacement algorithm. Reference info:
+//    https://zhuanlan.zhihu.com/p/516582856
+//
+//----------------------------------------------------------------------------//
+
+module icache_tag(
+    disable_clr_tag ,
+    cache_init      ,
+    //tag mem ctrl
+    tag_mem_chk     ,
+    chk_haddr       ,
+    hit_chk_point   ,
+    tag_hit         ,
+    fill_hit        ,
+    cache_miss      ,
+    hit_way         ,
+    hit_offset      ,
+    tag_mem_wr_miss ,
+    m_wrap_dphase   ,
+
+    //cache data mem replace
+    replace_way     ,
+    replace_addr    ,
+
+    //tag two-port sram io
+    tag_sram_rd     ,
+    tag_sram_raddr  ,
+    tag_sram_dout   ,
+    tag_sram_wdata  ,
+    tag_sram_wr     ,
+    tag_sram_waddr  ,
+
+    clk             ,
+    rstn             
+);
+
+//changeabel parameter
+parameter   index_bits  = 6;    //4KB 4-way set associated icache(each way is 1KB)
+
+//fixed parameter
+parameter   offset_bits = 4;    //128bit(16B) cache line size
+parameter   tag_bits    = 32-offset_bits-index_bits;
+parameter   tag_mem_depth = 2**index_bits;
+//                              tag addr  vld rlu
+parameter   tag_mem_width = (4*tag_bits) + 4 + 3;
+
+
+input   wire            clk, rstn       ;
+input   wire            disable_clr_tag ;
+input   wire            tag_mem_chk     ;   //tag mem lookup
+input   wire    [31:0]  chk_haddr       ;   //haddr to look in tag
+output  reg             cache_init      ;
+output  wire            hit_chk_point   ;   //1T pulse, 1T delay of tag_mem_chk
+output  wire            tag_hit         ;   //hit data in cache mem, valid 1T after tag_mem_chk
+output  wire            fill_hit        ;   //1: hit data that is cache line filling, high level active when&after hit_chk_point=1
+output  wire            cache_miss      ;   //miss in both tag mem check and fill line check
+output  wire    [3:0]   hit_way         ;   //one-hot way id
+output  wire    [offset_bits-1-2 : 0] hit_offset;   //32bit offset within a cache line, for both tag hit and fill hit
+input   wire            tag_mem_wr_miss ;   //1T delay of cache line mem write
+input   wire            m_wrap_dphase   ;   //1: m-ahb data phase of cache line read
+
+output  reg     [1:0]                   replace_way     ;   //whem miss, way ID to store new data
+output  wire    [index_bits-1 :0]       replace_addr    ;   //index of way to store new data
+
+output  wire                            tag_sram_rd     ;
+output  wire    [index_bits-1 :0]       tag_sram_raddr  ;
+input   wire    [tag_mem_width-1 : 0]   tag_sram_dout   ;
+output  wire    [tag_mem_width-1 : 0]   tag_sram_wdata  ;
+output  wire                            tag_sram_wr     ;
+output  wire    [index_bits-1 :0]       tag_sram_waddr  ;
+
+
+// 以下为受保护的标签控制实现；上方公开端口可供阅读，保护段必须完整保留。
+`protected128
+P@H>D!Y&IUVH7UH\VS&K_/(ECX[VDEC*+VA4P6A@T&75%ZM 4#CQD[L;HK\'K&('+
+PW;#6G_B=18%WD3*5_0_I6!C4SOR6FQ7N3&W.X0&;OCBF3!=+\BJB5*,K@2?R'=\Z
+P+_@6A^3:H:35<;*@L9($;GG2,G:K\2)N*"'F-IWQXZ2KBI\QO W')#$S1UCQA<WD
+PM:^Z;@)G81\K%>>*/TE1D_9P'7T,WBV8N3J+B#0/LMP;R5;>^D+<@KD.FVRA-A,1
+PY-#AO7/,15-?&$-MT$'GTLJ!ADPAZK?S=2\1R6L>VA0O[L/)JLPX=HI(SQGB[_=^
+P=$N61I%2FTL@^@R6N2;;3:1-/Z#"#=+6T*"P#I--(AFTW%7KNA0+6S^)"['H<+DB
+P]=O4W[TMBS@KD\FO>ORK(TWWC;JVS%;NM#"YIH3W:8:NKX%) !N-WG,($8ZG%"G9
+PNHB/><.*:*<08:0:)*'XUC.*]O=X*Q>WN%!7A^^)]:-KYE*.1L@@S=6A?]MS0U:0
+PD%/2:.^F_M4QO$H>4& H0/.D%ZO".:$=M+6R>^!3?:/Z$MN[5]+%K8QK'(]K2P(*
+PQ@ZPADF@]5<<]W^T7)]]3D3PGY.:M'^'<M<^ZA?LO)^CL]:5LLHN/.>H=> W&SU?
+PPTBUCLBEOGXWJ/B[-#H((#00 3EZ&5').BO#/(DFC1 ?#.+HN2>F(2W7<%PA9+57
+P;SFLKG!Y>6N<7G/6!9@WZY)6,>F6JF\3F-(,T R"6Z*.!"6N#F#_?LI'Y/00JG!T
+PLB5EF!W^$VGLIQX4P4JFO]EX=WC::O=]B;S[G:%UP"AN"4TXP\GN99D;0>HWA]W&
+P47^X\=Y!!B5(3;<H<ZQ>U5++&!.'0LU7"#USY0D/><7*+J$ BY1W>BS4RD/>_M,[
+P08-QMV6-D3KMUOI.(;(!CI-<Z86_B;'Q<!;/Y.,'B:^71&?8.DSTN:778F;6D[9G
+PC* B74':5/'2.2)RA$Z$SNGDH!_BZ ]N$$W!L"!DXUQVQ4\,'1[R0@6#Z5%Y*O1"
+P9X(U9I]>_S-C6<<=I)6$4Z5U55B9R<JX#5*@A_T^U\-/GY\[&<_+U/!LBPL$X*>;
+P\_W(UFX++A 7D#KYA!EH="(MLRLE:_Q\\IY_N277$*4)IJ0UV*O47?>BAM"46=$<
+P5D[I2U"+LW\1@D70-5]]VYG,D3JD87VA*EF!\YUOUE9?JF0IQU5^A3+_6;FK;GE#
+P]%?ZI6H+<,Q\'3.'A BO-#I^U\2N$B_^(7CL4MY4:5D@+._WA,:W+;>!XY9[M.M5
+P*%%[AR+GCA3D>:>Q8RI;S<%AN1M$IYWETF^-B(7R1X&_AL@ UO#DL;\U( V[2I-&
+PJ:)AZ,XM>\K;Y0EGX+@<5AEZZ)+Q)O2;T287')9Y/(:]EH,Y5$'>G9V3 4U?G<4M
+PF"LNE%AJ:#6GF!\I]*,LVXU6@N-H3-B?WIH"%2ALN\5'_0+UZ$6$JXLA9ZM0@T<*
+PDG,,7?L :'D90OM+NZY5$"QX"WU]BY.;?KKT_<#J.\14=7]AY!,8/LE>$P+G@=/!
+P1%G,ZYA_;=DJF-<28:()(:B&1R7>/HB,>V6(;;5E*JW6N^A&/*_-*%CYYG8@/NVQ
+PT36&39[H1(\4CNW2=9Q [O?B1W[F K'>T.16CMS=:!:=2,C1-,;5."TX<%A5>(2L
+PN@PUA[3+NLW1RNG=Y-5ZG-T>#<_)S2XMT4_F5 %3245J]J@J9'3[1^&L8IM?)M@D
+P(MQ+=2'OD/N+)?X1#_U;O;W$7'1%PSI]:R:BQAOKCY-J!S7?SQ_6E82Y1:S_]C( 
+PV?:<F*L5=Z$!C8YL:AZZP,[SZDB9\/CMR5+%AN47%=-70(HY[WO4T8\Z LX(H&MR
+PKNI8]@\ H\ U\S38M!M+:90N/C!\A",0P17BP3F!"XS!@5LCK-+KKM@RVB^<6$W\
+P^J /'4W<+]X(,V/"\5@GK_D1#<MH/K@?XF$9MY:EEJ9C%5/I4P@]D5L?5Y$QB3,E
+PNVA-]/_W&D9AL@-<%EV$L$2^&9_R/-:C3R%) ( KG(FV:WG_2RQC%7^IL)B^TL;:
+P3H#!V+V:2S'KZ+$I4GSJHZIT2E_9)9\/X91K+RQRGI.D^,2+PIBRI[D%3)6EQ=2I
+PJ_UQ!=!P>N\J./S0\P&N@6[P:_%NLH?N"H<M,8_0/D;E&PE@:T]B<9D_M,(4G)&I
+P6?.J-W1-8?IMN%N%M);.=TVS1>3W#FMVT94@-$*9<4_WB*;=^M6N=ZGWA8GJ6]K-
+P\Z4*CD)TM(D7 )SZ:!TET@YD2]^\UZMK1!P3L[411IAHUKU,"X8J9&(RUD POP/Y
+PD1GU]0&.G&M=YWT 20*O,,7O-)'G#@+K(SJ:)9-#+)7A(73EN34* X#,2X">$1A2
+P3B-\B\P^3=8_QA$G(]L([:\]-Z8'DV,_X@GFZ6%4H)A4&&: ,4.7GX'5T.&2*4;,
+P8NCFM3I(HG;UAQ<Z"OCO09+IKN?'NH3+O)/%UK&/=HA.HC4;-07-D#1^-R4PVT)?
+P:Q0_T<T_,BK7HX"<_20/F"KEN.;: 1EU!(2:DHW<SU!OW95!CA6;_WY:^N==]^"5
+P+U9." YRFB1T7#)U^D)9?('Q?\&O$1NYJ8G_2#)VN6-;]K9[1H!JA>\,TRQ69X[&
+P1$D=.E/2(H5*S?C,4]+&G:HMUA]"31 W /$]<P]JXU ?U<A.-N*R'.T5LD'JIK8U
+P-FNUN1E2:\E5ZD(YE0NT)D.C:*<<U-:!=D^RLO@^+F$P0NNVTV>A!E7HN#?J1\()
+P+'P+\98[H$ODWR9U@*&D4_A@-&YF-USDHP@+X*-2#$XW(5"4\$6.RF-30^6I3F%1
+PXJ>]W5;]@,OZU@ZVUQB/K0\8Z$&E^&3*6QD'<HY+3L@92AD=U(M?=YP6EMGWX(,(
+PJ89>+G53PA*6SG$XOZ'SR"OH]QAEVM%&V4(4GU=Q+7A.K,7Z&,-15Z?1XQ7T_[2<
+P#UZ";&""RG->.(0P/=*5 "ZT!NFY?PIXS<-,X4PCRA5E"G8G)@/D=',B4> +#BF0
+P(ZG@>GY[IO3D'WH)7G"^*3N.71"+@XI.J8S>%3&%DFW?TLFT4'!*4P<++0D5\Q\,
+PTQ3#CY*F13X?5WL#,>CC2>X@;ZLVGY(@EHCTV^E9/QWY/6O9RY7W(H&\Z*^Q\%\V
+PR[(D&)EC>N'@8',FI1BB<;DT&Z1A"/78=HP[Y+VV/$*=5!K34*%B0->L(Z,Y#&&(
+P@R$$-88"3*T)B:Q52E682N7 H%B!#/C=Y^K'4:C286$^*?,L4*JLA24CRL^&(D8O
+P_AT[E(.X5KY8?)&?&",Y:ZM:W23Y0! )..<ZX._ZU_C2JO7/[<%>FYD2R6"M/X^\
+P3OX_U>!.+"L-S..K=A%#4P-60Q"H:=;9DU=/W9V9"2UU.DW8D1&Z-& 69M:Y]!S>
+P7=UX$\P.=S!>W6+4W-+$E+Q(4QU/+6PRH$%B\^-</PE9@POA3<-=:=DD3<VCR3EQ
+P6M]NE^1/U9EA"&3C"QA4>"4XTC2]CI"EL3:ZF2,12KTW 6 "#4$GW^?C0-X&[J=(
+P_/W*G7"@Y[50Y)T2&75Y8( 6PBIP^ACU((='"G!+\9=["\DSO>5Q%6H]8& 1N"!Z
+P(Y[9:7G Z5-B1HCDE!H*,&Q/K"-NT;?:-]VFC]"IM _2J +!#M]H']PQ4V04. W@
+PBP$A=32179_//6GAEJ_YO6HWQ!$;ED>.&_EG1)Z]I'1:G\\0?1;ZG+E4-I^!O\>#
+PR8O_'&+1%[_HK4./"G="7FUF[GAN/1:# O@*A_D;G8TVQC@")ZRV'DSF4EG=0NJC
+P5X:/V!I:];+)F$^YJLUUJO&YN&]2VI8J?I6/:]_U/+UN39W!+D*W/=+H0]@'G1WD
+P.?.@/%^:W>B-[<2@EPGKU!3^9\GSL.W>.#T#+XP(U$*CW*(:5H)F<R2CW#UHO$Z>
+PL53FB1ZR>"U_K$)Y[;3F9/??HEJ+2IYK5+^641VA%;DI I0,R*(UP]]#KB<:TU@1
+PLPQR9L,2J4"5JY9ZFN51N\UD+W4NHS +;5DP-?R_R4*R&?GN)#[>B<E915 _7#QK
+P'F$#E;%)(1%ST"%O?@@CP_Z^J-G+B/7[]=!HP7T1&R5G0^VI$D.]TX"96 J;R41/
+PUS?3=\Q2WUGK>%CH/VF%1X:U0?24(.&ZP0 1X]8E4WKFMD/-#&(,@UTY)2#\R-LU
+P)2KIQ" 8>0@8RC7&PJ ^2']+$U&J*_77O2VA#$"%Y\WZ>$W-SX&#2U;+<[SAR!,F
+PC X^O<-_ZSCY&*>5* =D.A*E.Y]JFQATXU?6=$[-![NFN4QJ9Q26_#T'IT$T$</J
+PBB'@2L)SIL>RTV%7K/NM%W,R,?H1OGMHUD/?UD3;(O8C:R.0$L283UO&F=<-_^1+
+PIIE$L?#.E[F#Z=WK\T0T^'V]PX.K27$],1D(.V(N2"GNV*DL:,J!EU<#S2!;/C[C
+P43;LIU'0I!4^SL/&D=SG=BI@RL=2IPQ& *O:D3E;R&8BL)LO+4T3=/++FU(H-O]8
+P ]IS^WDQ(#6@TB2-(O'_YJ:D2U^-_#SF&#:#>H$)^W?,WO/@A12AN_7QU,ZJTD;3
+PKQF,L]DDY*R?[<^L IA5/5<V'J(\VE(%D6/+_D>%>F$OW"JO9GZQ'RB.]E70GE'L
+P@PSY]CXWIA1(HH"5?YVL"88?\BN-0A28C?V3V;=+[[93?V:@Y1/];EE.\+ ZMZYL
+PO/4O)/PBTY8$R8[N"5W'_SX<JWK/+PJL,PB<REEDTE+439?0(8WD%J@YG[4(BN-D
+PA8;9?B/#.R_W/?)G,JT@S9<OCM*J!TO:X[O)QFI!&%9]KK=B(F='*ZE)"&JW2%@.
+PZ(/K<$@YB+"M:D_]7L" 5'4M&N^%ATP5_P%T?9M#J"X)]T,-!C4@FV@_T>/O3F[U
+P!;NEFG>;*5X$]H7FS_%/!HYBF7G),D+($_5,+W[L\!R;AT&PW0/1$ PO=I,AR@?M
+PP0P&F$K,Z,J=XR!NI3DH!PV?O&U$;G4XXQ^KXY[]%ARXF0/XPB,^*-5/S'?U1,Z=
+P\F<:_&GV="R'QOWVN7  <J #I2@RHGRZ@38@ZB$I&4[4W*)?G7FQPD(:NR6&JC7W
+PRL1&$#L.):OJ<X6>$<Z\Y]9=P+O'U@0I)38H/56J7'C]4+X5>-K TH%A,6'WCU'_
+PWQ"1+X8?01_ *Z[ENPCF-F4DQ /IO*KI/VZY$510A@C9TB<_H<-:O%9EI'Z\::7P
+P5VHXJ*'C^2JT4,&X1^4B8/4LBPI#$\>Y](FSR:5HP:ZAL?,[D]T-U[-Z-G\ATE=Z
+P@H:!'K50<C5)4&XSFD8G_DUO/$8DU[J2H6B6(TW"'4.>+1 1\'4K\MP:0X":M4%W
+P,POK,>RE/Q_BVAZ^U2!FNHK$*BL4L>L<,DFY49[AJVV]_UJU*P:+_3EN5CIC[+[&
+PW/?2DP.3"$S1YCCQJ2A0C<J E-,KR! 6Q.\"=&_.O]$PS):I3RIKWBS0TH:P\\Z 
+PU3O^;ETI_M^25Z2 U\S2W6<>V[2W&1;.@>G+=5_->K1<MW4,\G1RHN*92:[H\AXP
+P<Z.<W1>)J*9;J2/K2PE"GQ3_<^M"RB7)\-TJ-W T-D =]AH>6>( K$-QP)0[5GK 
+PE-RZ=XK-GQ(]'UZ(XH8A&+%+],P#P;(7*CM6CRE:AUZ,4?5$5F2P\]JR,P>3!K6'
+PQ@77CCC2^F=1+;OIOB3TO[X"G/X65.KSR9]/YKJ-4"ZN,B[-QQ]4T395YLFWE@#Y
+P8>CNABFG'XY5<#$W,AD]FR<^R0 S!W_?XX,5_V094<-ZV/"YI7P_17\>Y6GZ L#T
+PDCPP1_R*HXI4E4B[RYYAT^!3NZ-SHJL+D+<-+<,?P-:@9'OP1<_=\)1)-<^3V2^S
+PAZ+"CSFT">Z[;"5JLG[+?:'?"X00LW7ZP$X&,/QB*'&#P7AS0L$+EX*!]JZN.K4A
+P:ZB*I,'= AG&2675J&TDF EYOU'47F,0FB2@*XY/VPN99I*-HJ08;+4TE$P$3%=G
+PT34%1.@-]A(BX^)DYM-H =WB=RP:%@QEWS'_^A,(J\@9VMA5,0_1DV@L;')ZZ^L^
+PB2A4:_\./.<&*EOLYW_6L?=Z1\P8PFN0SBV4.0G'D'&)>$3=-%?U-N 'H)9TV1NQ
+P.4W9X?R"6CVN;<26B!^M^8/R=AU&?K;FN@\7$0#B:\91JMU)G[];.?@!8C6*CC6N
+PM<2=P+%G7@1S$RD>C0+M27*Z3&[+:"#K3\Q\Z:Z4>QH$B_#S6>IGVL62SM)%B@5X
+P%-URU 9$:YJ#9%O136OCL$;]2R+9P3K7TTF0-]RC=2^_LY^0O:;E=%3=SK+I$QL&
+P*DLTA_+,^?>&?@POQ=F618 +]VY55-MU*^99)8M.+NJ5H\Z1&G5,[3_YQ:56 MN0
+PBM=X$F3_'6>29GP]0.$$1EV*M&>2PO1@N$YY FB@X &WH)GZI1K%9>F0(;R+W@R?
+P)B-6E<3Y/?L9/'?S=<N,U5$[J/:K9OXS*C,>" V^ #N9I'%:]>KDQ+*;D:;E&*BQ
+PYE!%YZA@HA(]B7 >XU9/TNZC/[W0"G^SEMBI6#WW'<96@&4S6-I3HG%W9@ Z!/ZP
+POAG!+[DG_@FU>.X##(T$9HN*Y'F-WO<=+UT!3H;!A/2(_ ?D++::I2?WKC  +R*K
+P1*D[$B4UC=,,H(1:/\? :? 02A;-L?/*\6N5H^I6O)C3BR/"OO8WAJ5HW-V48H)^
+P5:K(?V=T$0PP;/.M&V>T(:S7K_5';4JZJ<R'"R'Q;%@>Z : S%R#5:?->=H_B%UT
+P?!"L+L!"#/I((,K';ZH&25CR.XK'T/WA_>U<C)(=&&?QB<@SF61O;V\;HT8//SEH
+P'OVNTX0^=L2U;?EF=+ZG0*2!M"7Z1ZN!W BUN"'K94=YF1O1T-#?EA7- E+F<SAD
+P17'3U>=RRWJT,.]BJ0U+7,@']S=Z;+_/=;'9J@J2=<,4KU-9HCG'P:PO1S0FW$LQ
+PZMD+[):E/Y>L-2Y,&>:GH[,IMS(_*/&\CTU0(/&<S45&NTSL<(FFUS972"O(@7WE
+P3E%(ISB*U5@V,_'T^UC R)/'E;M23,AV!<)+)0DSR]Y1L\+8&&/V21UU0[<X=EYK
+P'DB'+L@U67+Q^3F!DN;,"AY=Y7%W\_#E^#!5\P7V#GN'Y,NL64G^VH[]VU"OI\8/
+P,4?O641N>IL.DP@:=Q(\JW%(,V.[;Q;CRG=W!:J0VY;R/"!<2+]84,<^8.3Q_!G2
+PAG(?L?).F=5X(J!AP!O/=3LQ7V9$(KY*Q,,GC^=]BJI7#XO">A< N?:H%L4D_FYB
+PXLQ'-"A"'4/Z&J1RW,;0MQ8IYD#8W'A*DD1E2@=KM#B?;L2DL3ZF!8Y"2Y7CFHQ$
+P%_NRIZ,QS4O9&-9_)IQS'80WU@<'SJ'.M&Q5<F%J_!5\&?-1(J>0IT<GK(NO<U:I
+P(Z[QO53$!C'@#7?E[O*Y5^/W;GD$X[;)$KB)\*)?*K$^1)0_A0',]WZ'MD4C8/RF
+P>0]@%G:5[GKG'B-*V_+&=L.5[$:(='DKA)/N0&O'FCNIQ,/&," 0-RIG[#3=4G/1
+P)3Q7HY$K)1CICKG<6LG9#&[A;$WO0@.;#1HR9IWA:>>BI^'W:H)Q9-B;>^)P0^/N
+P@@[[7015QS"@B/V*]P>2)-IZ2DG,W%7EP4=D$KW.A\=[XG(XP&<^P.,"VHX_S[HB
+PSK)CNRI?L:4,%KJG_!1JJT\5'Q(KQF+G>YA9)UX/@Y_[9O]H2 B=6X?AX^\ 1CCO
+P6(C#MQ9)<SL.B%;\Q[6#>,ZA*X-TSJ@EU62&E%*?9LIOAQ$C9-#16L<7B$R.04E7
+P^HB?L)P]C*XZ*I:1>2UV)<?K?<[*<OO$&YZ47"97$*VO8(%51^*%E?!:O\YC=,6T
+PK71.KWTR.U_[QYE\!1JBZ4)ALG;R1!2;UT.VO@I). ]_;HGZ5XSS(2WN@#(4@,R2
+PGZDH]8,R9L;>BOHIS>) ?DKPN[$O^>MS)O%&+I2B#8>1.U6 GN:QR$*HQ4@'>"HH
+PHYKO:^<-Y&"/Q! =5_K(T#GQ8"L_Q6MD( \9.,C4G%S*$5V% CI/<7'$0[=R<6R%
+PHE3UUK .&<S'VB^O*U_^VB+$8V%DQN*&LY2HIY6:;&0Q+GXGU#]J(+^[Z#$&98L;
+P$9]-]+T[CU9ID#_KN/YQWRO9=1E= V-9 XH7'7PI(Z&^!!,Y!6FB%=UL);56^"_#
+P:W6K!^ZH#99 [K)&D['A[X_X7#V4#34'(BB- ]D7]/57U1Z7GV9BX\B4?:R0:J<R
+PP;T%P1(V_'0OPJ=@'/I-UW:R:G+_YYPR1O]H44^I@"#X"\]T9DJ9A>0.K0N ^XT[
+P97W#YCB543,=:5688UTY)-1;+@?1.F?:CX?5K?1\.X2X<03^B_X=-!3K4;KFW@#%
+P7P93V*??L%$R75/9>;I&ND/*1,<^4PL(P9SV680%(HT;Z5D=?DE8*AI MWE(UY(U
+P*E83<KFU<WM6_\#() EXB'Z,F1^FAGQ7Q@O3T%]T-T7'KIK=U0+!\NNBG0V.GP<1
+PI]1 N[3&;@QY*6Z%"0,=K3JH0:%?*[0X:L<H++Q!#EXDM]6!FA="=JM.+"D>3G$"
+PYFA-")$)4'/=;([_(1\+U=;""^C$-4\#7I.K596T^03[\[UHT?RXS5_M,+=?\XJC
+PN@; S+I# )#2!V"6MS<H8(;^JT#8O8($FN&P()O5>A4_*)?I=X:X[?9%D'E.%"[V
+P S98X/U&;1@]K6%_N4:)U#QQ)R0DATA7](1R''C[V3J:<^@N4R>CRW[F_:RRWT31
+P6X0%EK4OK\.1#>+10')(FG J9VQ_AQ3]WN$UC4GI-^^78@LH4T7MAON"XT]J&FS5
+P2[A8<)>$P;[_(1S/>:A]FN$($F7\SID=KD;L-T08K&V-MMT-T0(9G87,]F1[.^NA
+P?_HRKGP7COM->@/U'#?5S6<K^>0\(3PTR1'+*ND#ACD#/;:+T*IXQ]C_V&/ <F!8
+P'0<<GK9F4:*8&8"G*TTA$CNY=[ M/TH8A"45-ZY (JBE*+I$9@14)S,BM2%';M-K
+PQ(G!$=?BJV_V _D:QA2 VINB %/;N"BF1XAUE3"H36(9GT/;V!4Q[8**0-\KU=N>
+P*UU@4\BX^)COHD@M]L*C'23<<K?G-1+*/NR]&,LK:1HKIO6R0&272<'3"#Z"3YW4
+P90"P.!7[,U@C#,_JU+-*GICAGCM5Z_]>/#OX[KD_^#23+?IWP&=! 'G4(7#CA"J0
+PKN<&G?%.QCK8"N-X3G\K1V\V_FN])">@-;,$3E<OYP2')S#(5&2VW8O;R)X"^ 'A
+PJTQ'KX')L/E - )60YHN6!A3>23W))=*R"^<GD+'7CB1:^91,QI_,I'YH[^Y(+2&
+P5:X>']0E@J:=V7;G$&2*C@8,0IE]@/6@B-])4M Y#55#!U!0GVYK"0!&&.\@M%%%
+P2\A*<7'U\S%/+:O<:.02F9I9NGVK,1N=<P,%(QX%+@,;WHQJ]U-2S;0AT:9T++B2
+P,&&ZT7['NG[HJ(?SDBB 2$/4S=W7@IGT?W"SU8SBYN9(3!!.9"#@P5(O\GJK2 )M
+PNWZ*A]:XR\.6\598831O=&NCXG6.X^;% 2,YJ0FP:KZ44_D,@$8]RI^U:C3//H()
+PIK[C:8K>A8[HX15$.7HW9GNWM:5325;/UV87J)U@;$O-&A\C#I(L4F:9'S2$>I49
+P(BR ?P W4LGR^@F$^J*P\5&*^HFDG7DW0S=L)BBO5G$MSX;O*8>I#?ME1]O&35C=
+P(CV5ZLD)#\E'E+,DPY>[N?Q;-N#E81'=.'3P)EM?&0[S/='.P5W[X"YK#[SUIM%I
+`endprotected128
+
+
+endmodule
+

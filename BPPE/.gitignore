@@ -1,0 +1,21 @@
+# Reproducible MATLAB outputs; retain small experiment summaries in docs.
+m_model/artifacts/
+*.asv
+
+# Local source documents, business notes and reproducible presentation outputs.
+/doc/
+/reports/
+/ChatGPT Image*.png
+/intent.md
+
+# Local CMake outputs.
+/c_model/build/
+
+# RTL simulator outputs and logs.
+/build/
+
+# Personal editor configuration.
+/.vscode/
+
+# Local Pi extension outputs and jj-history snapshots.
+/.pi/jj-history/

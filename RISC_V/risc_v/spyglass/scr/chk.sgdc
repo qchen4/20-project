@@ -1,0 +1,10 @@
+
+current_design mrisc_core
+
+clock  -name clk     -period 10 -edge {0 5} -domain clk
+clock  -name clk_awo -period 10 -edge {0 5} -domain clk
+
+reset  -name rstn -value 0  -async
+#define the clk domain of rstn input
+abstract_port -module mrisc_core -ports rstn -clock clk
+

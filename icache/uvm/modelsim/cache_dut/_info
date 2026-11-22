@@ -1,0 +1,120 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+dD:/new_proj/cache/icache/uvm/modelsim_2
+vdpram_generic
+Z0 !s110 1792541445
+!i10b 1
+!s100 Mbh7I^W3GI_L^@zi^]L:d1
+IM>8N5:zebW8g@0]D[Hc2D1
+Z1 VDg1SIo80bB@j0V0VzS_@n1
+Z2 dD:/project/icache/uvm/modelsim
+Z3 w1529458105
+8../../rtl/dpram_generic.v
+F../../rtl/dpram_generic.v
+L0 6
+Z4 OL;L;10.6c;65
+r1
+!s85 0
+31
+Z5 !s108 1792541445.000000
+Z6 !s107 ../../rtl/dpram_generic.v|../../rtl/spram_generic.v|../../rtl/icache_dmem.v|../../rtl/icache_tag.v|../../rtl/icache_ahb.v|
+Z7 !s90 -reportprogress|300|-sv12compat|-mfcu|-work|./cache_dut|-f|flist_dut.f|
+!i113 0
+Z8 o-sv12compat -mfcu -work ./cache_dut -timescale=1ns/100ps -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z9 !s92 -sv12compat -mfcu -work ./cache_dut -timescale=1ns/100ps +incdir+../env -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z10 tCvgOpt 0
+vicache_ahb
+!s110 1792541758
+!i10b 1
+!s100 `H[EUEmzO[J2J4[Oi8fd`1
+I]iGHd]J0IdFPTFC3HJ2DG2
+R1
+R2
+w1758330368
+8../../rtl/icache_ahb.v
+F../../rtl/icache_ahb.v
+L0 28
+R4
+r1
+!s85 0
+31
+!s108 1792541758.000000
+!s107 ../../rtl/dpram_generic.v|../../rtl/spram_generic.v|../../rtl/icache_dmem.v|../../rtl/icache_tag.vp|../../rtl/icache_ahb.v|
+R7
+!i113 0
+R8
+R9
+R10
+vicache_dmem
+Z11 !s110 1781492251
+!i10b 1
+!s100 MShgfCMBo^o?i>zk7[eoY0
+IlzgQLMSRkFb4J<`oJjTPZ0
+R1
+Z12 dD:/new_proj/cache/icache/uvm/modelsim
+w1760832772
+8../../rtl/icache_dmem.v
+F../../rtl/icache_dmem.v
+L0 26
+R4
+r1
+!s85 0
+31
+Z13 !s108 1781492251.000000
+R6
+R7
+!i113 0
+R8
+R9
+R10
+vicache_tag
+R11
+!i10b 1
+!s100 2JkTjRcH?@b;kgkDMYZgb1
+I@z4?k>J3S]PD`UD2=C7Ta2
+R1
+R12
+w1781491769
+8../../rtl/icache_tag.v
+F../../rtl/icache_tag.v
+L0 29
+R4
+r1
+!s85 0
+31
+R13
+R6
+R7
+!i113 0
+R8
+R9
+R10
+vspram_generic
+R0
+!i10b 1
+!s100 K4RW@IG3M8jRo6SE[Ci]@3
+IXM7^DZ_;6k?Q>VBPWVW^>0
+R1
+R2
+R3
+8../../rtl/spram_generic.v
+F../../rtl/spram_generic.v
+L0 6
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 0
+R8
+R9
+R10

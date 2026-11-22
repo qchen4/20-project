@@ -1,0 +1,261 @@
+// ---------------------------------------------------------------------------//
+// The confidential and proprietary information contained in this file may
+// only be used by a person authorised under and to the extent permitted
+// by a subsisting licensing agreement from SiliconThink.
+//
+//      (C) COPYRIGHT SiliconThink Limited or its affiliates
+//                   ALL RIGHTS RESERVED
+//
+// This entire notice must be reproduced on all copies of this file
+// and copies of this file may only be made by a person if such person is
+// permitted to do so under the terms of a subsisting license agreement
+// from SiliconThink or its affiliates.
+// ---------------------------------------------------------------------------//
+
+//----------------------------------------------------------------------------//
+// File name    : .v
+// Author       : sky@siliconthink.cn
+// E-mail       : 
+// Project      : 
+// Created      : 
+// Copyright    : 
+// Description  : 
+// 1: i-bus use ahb-lite master interface.
+// 2: maximal buffer 3 instructions.
+//----------------------------------------------------------------------------//
+
+`include "mrisc_define.vh"
+
+module mrisc_ifetch(
+    //instr read bus inf
+	i_haddr			,
+	i_hburst		,
+	i_htrans		,
+	i_hsize			,
+	i_hprot			,
+	i_hwrite		,
+	i_hwdata		,
+    i_hmastlock     ,
+	i_hready		,
+	i_hrdata		,
+	i_hresp			,    
+
+    //flow ctrl with core pipeline
+    dec_pc_halt     ,
+    exe_pc_halt     ,
+    exe_pc_update   ,
+    exe_pc_opd0     ,
+    exe_pc_opd1     ,
+
+    exe_wait_trap   ,
+    wb_wait_trap    ,
+    irq_wait_trap   ,
+
+    //core pipe stage flags
+    dec_vld         ,
+    exe_vld         ,
+    d_aph_vld       ,
+
+    //CSR and intr inf
+    trap_req        ,
+    trap_ack        ,
+    i_go_trap       ,
+    cpu_idle        ,
+    csr_mtvec       ,
+    csr_mcause      ,
+    pc              ,
+
+    //ifetch handshake inf
+    if_vld          ,
+    if_ack          ,
+    if_pc           ,
+    if_code         ,
+    if_c_resp       ,
+
+    clk             ,
+    rstn             
+);
+
+
+input   wire            clk, rstn       ;
+//instr read ahb-lite bus inf
+output  wire	[31:0]	i_haddr		    ;
+output  wire	[2:0]	i_hburst	    ;
+output  wire	[1:0]	i_htrans	    ;
+output  wire	[2:0]	i_hsize		    ;
+output  wire	[3:0]	i_hprot		    ;
+output  wire		    i_hwrite	    ;
+output  wire	[31:0]	i_hwdata	    ;
+output  wire            i_hmastlock     ;
+input   wire            i_hready        ;
+input   wire    [31:0]  i_hrdata        ;
+input   wire            i_hresp         ;   //0:okay; 1:error
+
+//flow ctrl with core pipeline
+input   wire            dec_pc_halt     ;   //dec stage detect not pc+4, indicate pc will jump, this signal maybe missed
+input   wire            exe_pc_halt     ;   //exe stage detect not pc+4, indicate pc will jump, this signal maybe missed
+input   wire            exe_pc_update   ;   //exe stage pc branched(branch/jal/jalr/mret/wfi), 1T pulse, can't miss this signal
+input   wire    [31:0]  exe_pc_opd0     ;   //opd0 to cal new PC, keep stable until pc update ended
+input   wire    [20:0]  exe_pc_opd1     ;   //opd1 to cal new PC, keep stable until pc update ended
+input   wire            exe_wait_trap   ;   //exe stage detect sync exception or wfi, 1T pulse
+input   wire            wb_wait_trap    ;   //wb stage detect sync exception, 1T pulse
+input   wire            irq_wait_trap   ;   //async interrupt is pending, level active, may change from 1 -> 0 at any time.
+
+//core pipe stage flags
+input   wire            dec_vld         ;   //valid output at dec stage
+input   wire            exe_vld         ;   //valid output at exe stage
+input   wire            d_aph_vld       ;   //valid output at d_aph stage
+
+//CSR and intr inf
+input   wire            trap_req        ;   //trap req, high level active; must keep 1'b1 until trap_ack=1
+output  wire            trap_ack        ;   //== cpu_idle
+output  wire            i_go_trap       ;   //1T pulse, the next cycle, pc change to trap begin addr.
+                                            //when 1'b1, i-bus and all pipe stages are in idle state, d-bus may working.
+output  wire            cpu_idle        ;   //from ifetch to write back stage and i-bus are all idle, d-bus may working.
+input   wire    [31:0]  csr_mtvec       ;   //trap begin address
+input   wire    [31:0]  csr_mcause      ;   //{intr, cause}
+output  reg     [31:0]  pc              ;   //i-bus read PC value
+
+//ifetch handshake inf
+output  wire            if_vld          ;   //instruction code valid; if_vld may change from 1'b1
+                                            //to 1'b0 when if_ack=0
+input   wire            if_ack          ;   //instruction code accepted
+output  wire    [31:0]  if_pc           ;   //pc of this code
+output  wire    [31:0]  if_code         ;   //instruction code
+output  wire            if_c_resp       ;   //instruction resp: 0: okay,  1: error
+
+
+`protected128
+P@&\]_\,U3GNU$29.<OJKYP]')9+,&8FF>WN)J8X+.[?L:%4O_3N5DH *-23C24)-
+PG\>;LYX\J&GFY!!HP7VL?<5AO=JZ.P*G05YFXSBMB"&[M@GK )-YGLE&OTRG[#S!
+PA:U>Q7Q&Q[!V$OO^:\&W5Y&<:R&"5WHL389W6PMU>8#G*\V@L!]@\ZMYMML)=E!?
+P9E?V&O),E^S??QU@?K(Y,S#,:TM)7Q56_75P?)7@@48W9?EJ<)8SV11QGWT1%$9Z
+P;=+MYQ%RK1M/3R&BT!6?;N3-;\>Z(V7%I07TNO^OA@T&JX&C7A4YLRR&^PF\5X6?
+PA]^)0A<8UH(.E'%!''U!L#J^6UZV=DXWJQM:?/&T9=N:%E\-AX6M[H5 D@\%/.#&
+PL!2[M:4%+J:5EO"DN)UR1DKX!5T\;RWG-;+9VLPVN4NACTJ^K6 7->2>57)6&[/"
+PQ+/KS!P/08^O+;'.I79O1J&PIH@%/9X1<1TR:\F&*Z2X2-G[Y%SRJXY46:9NJ@G3
+P3@QB )?S(9>9F=A\>Q.ZMMLS#F@(2ONX8T!O22?OU&"V!G1$E*\WC8QP??YNBK5J
+P?=$T*SVHWSUT$DSR%(9JNWS'8T)/FZ,+)M@V;6.SM4?:L?GU7N%5@G'5-/S2M!JU
+PNM-L!@7B:9'WDR2,7J_M(*$H'-[M2A=_<?D-A5)"H"TIZN9;'()'^\TR>@\UHQW@
+P##W\5%?Q$76?*H*T?B=ZT@GU]%4@ABZZ""_V1&R.SG*9-DM9+V.?^9L0_"DS7BW.
+PO4'OX9Y/BU2:0&=X9Y<$] _&+?SLAG(25,</A;)>B(KFRP3H<(DJAHI'B'1WLR8E
+P#CM <,N4@O6Q<;)UXG+L28GA1T9!?4>_'IZ$"9/(F?'E 4D28ZUD?!57G;IXZE O
+P-E&MZI W3RA0'1:88"I^@[F-X1F<4$>.[1;!;3O%\^*B8_L5B$4JV2XO$)$5PF9Z
+P#[+O(1VUQYIOAU?*<,&R8RO80RL!2X]!>[N*_C  :FL_"MD!:CL_S 'C/A1QUP ?
+P?LOMF+G ND5^YF\5Y85$T0%8."#GVTMWQ[O"VOXV1&-V\<84YEY4Q=2J]^%W.FS2
+P :&F*V2)YF3U]_V&7O.6]A7W4/ -T@L$V!I)0%D,MVMXH$H/V&6YNB+=9$-%M_I$
+P]^6$VKW TIO&."G>' YC/NVZ VS/#GUY]$!)@J=-09O-0SY")2V"LCQS'>"T-XCJ
+P"CZ%CS?ZU\&0P_TMWP5H7N@GZI]:]3!/TMB9)N*F,K9R23VP/MP08C8W AV_*?(1
+P _E5:#-9 4NP4H<6 '$X31325*;40]3_OHR-MF4(&%I3J%#?";,_-([/23H63&T@
+PB;C) J&I#C)'L8$G4'OGA;Z<_#DP2D; O4T8@,LT+/CM?:4_:0BVHY\-3XRVQ/V-
+PCM("QMDB4[!HAQF+\+?Q8W/&6<[6B?I>7>)K+.7_N/TY4 '+:$GT/B8 ]?C!V[%7
+PP"/[<U"B3S2.K\[651H7!,E'N%U]%V1WA.?7JXNVC^SM?*MN./G\R&N.(AC=QF0+
+P#, 5+P+F&DS^6247/ZG8#AK&N )XSHM$7_B9IH_XOU,IN01+2<A6@+':^87-F=:^
+P[)KK'J,G7#.XR(9)J\*A@,V=#T2#Z5-)[W;=9N!"G7;M6"N0%)S\E&__["6'1RT.
+P@?& +2!3/?18:W*'$_1PB"JGZL4_RFYCB)FAQT@;R/#='G*@4!ZBHN&[?YPDM,6(
+P."U>,Z&7E<'I1A3LVP0VC]A!(,#@PH.) [*>LK VZR6_! 5 ]GR@/LL&^LGKGJCA
+PB) CC__7RE06.P=3)R=<C3E%4L6!R@P!&:)TG.X<DHXPM3PGIH(SG*NYGO!(OCVZ
+PLT1?YC(:;7.&?X::W57I#[23+M1U 3CP707)UE.  ,W>[#W/'NB1O'H3:S7B.+L\
+P[#!=HAQ*@?Y+CN\\X 0*8%\>OO;@ MBKSID0)F=*C-Y)T<(NO]*D)C#M4)&!T27?
+PF).6V1ON79/2OD%D.\J!8-$FKJ$*E=&@W\P,=*,%A/8V6?UOW_[4J4W1(/7;^CD+
+P_?F"0*K^LD?M.+\\RZ$DU$Y4 4AL^>UK=.N;;<UQO"7-@<)1ZY#FC9EX,R.Y>W-5
+P\%OH9FIQJOSU:G^&9WE6M-*^VC3A%OCMW:ATE N=0@W0/'7O9-*'%;VYHFJ'4,;)
+P)_#Q,*@[&8DB]\^Q$]&Y5T@ZRI1;5I\/NF;E/H#XL1,ZX,:V/+T$S_'.+UG'E ,:
+P)87]V:'V2T+1Y NI\-!PMU QV43!Q4TTUPLR3O=</@! +02#T/(Z3XU,UF3F;*]I
+P*<DAB']J1S <3DGX!&"[?GR$C<^Z= )CE<$ZM>9U0)#KX9[<@)KLC#2P9AD?-137
+PG]Z#A41\=*5CG'MOF$HN92$&IGQMW?+SUWA$N3C3GWIBQ=#^V*9D:9^7Q_DZBR&_
+PU*_\;19E8:/C.UNL)0,)14??/X>E-TN9OQ5]Y&RH8BHE+R-/4S\YSO@M-W=44X:8
+P<!829,_^0D)B89621SXA%Y^V[AIS,CI'-'I')..'"/P-NT@[6H]"$R<DX+?]QPPM
+PM3._]\&LZ7%?5TTB2AKUF/"J9_K>"H73*.9<0%*GZJI);!/RA;&"2<" 0QC:#5\4
+P'"P48R;68@@AT^JQLUK1H^6-KTLQMB*/B5M>DWFZM92D!6<+,IK7',U)K7D %VD;
+P_OFNR\\.H#^=A9J:<"L=?%N84#Z+76QK@U\VL5KZX@-9S/W[]\1I N[U,G#1J_:X
+PP !JV53IH 5\3Y_5$^6(QL4$;P\!.C*KG!JF JSN,TRND(0HS9J5$?S]%+2Y"87K
+P,O*WJ&[!>$$"7>H1H4>H$*U4*V*8ZD;_*6OG@8DEJ7JCIF#'[3=9GM$#<.+]N@CP
+PI3,^FCU+9^9 <[&=*CW'(#'\P_=->KTM&"+;;@U(\$#JBUQ^'0D9_.EZTTX&F!^0
+P$4%K'88DR9;"HE24FW71#;J0ON$NDN%OM4(3BZ6).),^,LKO>\]!TY_6G0)0AMI@
+P'#PPU[3"C%R5M(7]G9!).')4Z.&=5IC>N58+SF;6=9')Q]*R4A@CR_U/&60LO/2L
+PN3N5V%6.6G+WM$*3]BQAM/=F-0XNHFP*:8M(X1S%(@IW0'R96_1JQZ)+8#4;(F' 
+PR8E.*?,@/KV/2RK3P644'L^>(B2 GW2:\M-"$-K#T\2:#+=26&('M<JPP,.^:.KL
+P@>K3XP6^BJBWBY):0T-1VT'&_>8+IB ?8:/$_>,U!>KQYW<6Y81!'4D(O=4<N]/Q
+P:4Y*@<B.M^+!-A:[L[I]Z>'.D&=^>7)HMO)RV703!4:@]-<,6B.6<<Z.)H#9M<U2
+PBV,2".VN5R![UE@!<R6E]T]DMS(8]526WE.66"T>\X_5#),9#A%;HRV7$1-F N*@
+P]*M]8"O59\&I^G7".*$-&BSJ%@D@Y4(=ZX:M:("DQFMF@-&0:;0F9<-N!\%/K?7W
+P<[W[<T)PLMPJQH(.840"OF?S(T0%6LN9-$O^-MPA&^B$MR?Z](:'G,#Y,%A*SM+L
+PVK C"#)GDQ >PX)45.*OHW5/JW'<!G*6IOC##Q93(QH,)LKP%[80/RZVH213'->@
+P[<+W[_#Y1_\U:*=8L" M=,O$.QDX&ZQ6:B^#(2;8<8KB@9S@)@( ,D+@!L-[NR;V
+P;JIQ,OC2V&A=>(DD?"-,E@6$)A/B.!&,]+0E7?XHL*O]["CP1_KI38"JRD!"]C-.
+PX$5NEMBI%;$+2.["G$OM5O^B.L\+.GDQ:J0.4^#YE@>P*M5ZZT(5;@!NKIA'H>]N
+P+)F<F!NN;M<Q[E43?Q"G_96CD8QGJE]#:OCB V:2[XSSR4-QY221XXI$>D"FJ,8L
+P97ZJAM(?8Y=Y6'77:L:W6>*022A7@JN&WU9OA_IUF5*(H(.:D)6S%I\)]Q3<N13B
+P\#QKFS7U;;X7X$G G-?FN2"4A?O::C: 6#6'VF-L]P%W#(R0;Q%LNW>* MIBQT\3
+P/[*<3V5"KURBR4XZ@?X_Z82E@+[J_#[ ME9PMUD<&R)D"T^ 5"U7M5P#@0CTRRO/
+P'>>YE7H9.P\KS,]2TH=T+=0KP[PO%P3]*+6 50<G?JLG.4BV6<#NP$M,Q*K/?#O'
+P2RKP+>9@AIDT0?([YGS;-3A.T$&HNC&7H"P^M?A!0TM?_]3.G.F4>WL_XB-,7Z"O
+PQ]%0!*A)(>)V&JI.O!U^Q-?T&TFHY4=9G\SJVBO! ;:0Q-CUG./7<BIM&*?ZPM=P
+PTCO&YHB:)_42U>=U'CP3I]8N^<76G'MQ2;$OK6_1BDB6^A;6JUP;RG!^>9U&8CGW
+PJ6\^P1I.+*]9OD&=I4;5;4*UR1CEQ )2H('+1K3)FQ"+-?]"PA$JKU38K1]:ZZ^7
+PX#[OY.:O*6AS-;]FP2FHM=*,=^ B%7'Z8)N%;)  =D0BNIY;AM%G+:!>?6&5TT'W
+P^EN*C3UL[&!9,<X^R^TQ7'&5_^!GW^H&:-CV^4U"A,$U?_G[=I(+O./L04W((TEB
+P.+/2M!CR.T_ Z7^[-%]R>O#0F"!+U*UI#S@WWV%^%=)Y49V5L'E0E3\$F6>)/R7U
+PU_C?KVQE^1.:=D;I?NAX2)>%GVP@[M_]YW+@-FGDV=@[D:,9_3A(5N3IQ,=,X2GD
+P8A5U0P+%9I&_PY\ZB:0R6-YRFA?I;Q#^ -#".)X4=+61GSOBFI!@1?\XS/**W$!.
+P:Q%',F!3Y#$V1YGM,RK[PSM$5UM"'#4'>G BD4I\#=1L)YUR$JC:*/ '[+/Z&XEL
+P('^Z@-??I%.6H7?I2.E<0Y-HYBX@#(L$:"<L]HFZ\>HORDM53L^AI$N3D'BJ$A]=
+PA3&*<+5D+RX]#'E6,#H94G%I:Q-IY52,C;$+JB$<5%C>Y@RR+#-R&=<;IPT9(WG_
+P$ ;8 CDW".<R<O0Q[60UQ'4[U\T<#U&6)ZYPK>R2J>9O$B3"@"T6+>$!/U(H^4R'
+PZ M?^.*Y4U<*B1\($%[:864$2,D7"HJ3>.1?3#6*K:N[,%OL=IP#!A3A@NSR]0T'
+PSJB)[HF1.]?XNW>N1XY,F(=A$QH3^<;!4V4\&0^1M7JG[.]U^'=4X<B\PKAUNL>[
+P%\*D6O-0JPST>0>%YK6H(KX*;5)7RE"6SHH#.D_.=R3\!"!L9+1+S,G=!?-&GZX@
+PH(L"/.FC8E0TG>! 5;6"6;+)3YV-S>A$NYL2WI=Q5IT^E1E"))>IZ48H'8681)@N
+PMA"5/?@Y6-&EER47Q$'K^\0@YEU$P(YG;!WP#2R A0NVTP)=IGF20[.=JLEQ> :B
+P^8%&G0)1(EBDAXI7*D'I;\:3X2=42$QJ<&P).L50X98LDH=H!XIU3X5(/[Z1)LV>
+P$Z>KMO64G4);+L*PX]B6 G9&PR^L4RTFLR&=U[;^,6KT/9!M:'T*\K[EN>=I3I]"
+P)# <-"S!:]@" &B!S\E1+7C\K$W-W)<4F>'(^3_J&^WN +O)9-03QE\!85:KPCL.
+P%G#1>%('_WS @-+<5)WFN"MVSK \0\*^<KK0?WYND+#R+K#\+>!_O\.XMU  8(4^
+PV6K*;WV(,[R1T37 P(YMR;2J;#(>EZLLPDAN\.VS($QBHU"5"R[@ 8W^R$R$N'V@
+P'T?CTUE9M8B6D+O$HPA.>/QQ[Y>\>K=].]H8X)H85#04/N"%6BJSX2W@EWJL?.WL
+PB 4WU=0T7J%>OQ[?N#VCGK&"%3T<KAUDU2:E/4'F$*7\2(C: ?<=A5GG"?6>U*L_
+P2&%EP:R>R8CT&54M]U9!]-@,_0]@N07RM$=1Z,EWURF1(N6Q:QTNT*[WJ%\<T62)
+PUGFX"G9.=P>/GMPE_>O3 KCAE#4<;;#Q],D2!(&(!2U'#H"?M'B2CJ!+'&FC?LR*
+PP\T*_=T36=Z#>2/=!WB*Z@N-J!!W9W#'!S9]29'Q*N1BDR#$Y$W<57:U&.,74>SI
+P!3I+/X3\SGA0M0MWN'@/992"Z,+1^TDWHT$\$V*% ,51S(TKKBT=IUEMRV<GMKA(
+PCH?0HMY%LYU2VL<^M_;H)@]B<0:TGINL ?RX3Z4V3JM#X1Y5YCP1+[*6X<3R.$>R
+P%(\RAG3'CPC.HDZ_//C[28TXES\%':%D?,. 0W0,WE=AT3S*^Q6]_/+PNNC]1@X:
+PKC&HH"/R7F&)4]UCN?)F+TC5M PQ\Y(T#-MLX2QB9WKJS7)_O"_ E+D47.M]404H
+PPRU8].?C#[8<NR4.@0AR\S&**<&R!$<$9TRU!<HGH?>PRC%X7.?]YB[L+1]_#B><
+P@;P9VA*[@ZFS+I+X9.^I>GVV6&T]M&$]1H4 '-+S;N<?4THM!$ED5#+FWY&5LI^X
+PT9XRF5I*B'9,(FE@B8*_+/[^>>Y.9*?\1%T^*RFZ)NV B)!3O(M)1HHU.-8"2<5F
+PJ!\^$^AXZ0+5$+D131%]P77HQ4MUIOPAI>)64.8<+2PZP?]=B1A;@H(@2BC5P<))
+P"M:NV@BF,M[GG'L#UB_FCQ0=/P,HA=GC B$C35VP!T3;CU"AI97;C_#JM$^<;- P
+PJ6CSU7UHI&O'K J7O*4J>RFAGE!#=E14I!L%K%PG&V*E:B%PGBYG]31D6I>7<+G0
+PS[6+3YPX)J<-//,#%$Z#-AZ;1])E4"E23-:QLJMJW^)S13;^J(M=D=&8GH#H+>=F
+P0:(L %(6/M \6)SS9-<X.0WQ'2YD5\?J8J]8$"SQW1]?VPGL/+5NL8=A?2)XJ''D
+PA&G]H\8G,7U:6NC T:H63((*I8Y_(:RN'-6?BC,]7*$Y*YGX,T=H3;/.$G7$4116
+P=8D]P581UH^_&(\^6_#G.J/,EY^_38<><A\:2U,8D?72?*J[D,#X,'LLB]?)2:T1
+PUM:,^^&7M/0W?>)X^9^%C#8Y&IA.DA5F/T=>A8HDLB;\D?/1(2>I%AX]YH)TRLQ'
+P:JO6&7V<TQW@M0%!5DH5NP%!;JBMU0]NL:+O (^!.)ZJ97.<=IN*$52;HD);+R:[
+PII%$D?\N$TS?E)[_[7-2W^[V8Z,D;QD/ZTAX9;7L1U5EE87JD]<LW(?,E"JT3M^2
+PF<6[50UY@(/C+!AP4 P!]@+H(%[&ZL8@6[I:OZJDT55XN_"#^*&PGW"\+5H IB9B
+PD[MXAQQ7DX20C]!-=/U&P(W(33D3UYSJMRLX$;3OR$WB3 RF!=!RWOEJVIZT(8RV
+PF9 QXQ+' >0,ZT6PJQOH"&G[HBC3(BC *O(@9KQT;$\ B2XLGQ>OEA)JY1IUW"?^
+P72ZG7",*F=&^:@/L-KD\X5.WB0)7Q+^YX,>:Z6B$NOLTVXXY29)L""P:4Y]O0*3'
+P3!!%WBTU+:5*].6\<[F<J< RG[6^\ZB[RU!%&"ABMJK35>E'I%J:!.'>D )W(/R3
+P)%?J/"!GUHEJV3=H3H%5\ I00^(%S1/%TN$&HR%$T^HTPGLTF']BEH[W^&AD@L5/
+P7?:J54H_[=!/>7GHBO@%LF8HAMFPANU7W8[\U6U!U4+@_PZ*1L&4TX7O33/TQQ;(
+PGW5R"LJEPFG],4@U!4D^;T"UCQ^;7L#<0SBO=C%P %F?MN"LO[H;T?7NOJ<K-5,=
+P]_>-(=UQ1$QW74,T$4=>E)"\ESK\6WTK"[T&S"[ANL"<]>PD4-=[*CR!V>FAXTE_
+`endprotected128
+
+
+//---3: ahb-lite interface
+assign  i_haddr     = {pc[31:2], 2'h0};
+assign  i_hburst    = 3'h0;                     //single
+assign  i_htrans    = (i_areq)? 2'b10 : 2'b00;  //nonseq : idle
+assign  i_hsize     = 3'b010;                   //32bit
+assign  i_hprot     = 4'b1110;                  //cacheable, bufferable, privileged, opcode
+assign  i_hwrite    = 1'b0;
+assign  i_hwdata    = 32'h0;
+assign  i_hmastlock = 1'b0;
+
+endmodule
+

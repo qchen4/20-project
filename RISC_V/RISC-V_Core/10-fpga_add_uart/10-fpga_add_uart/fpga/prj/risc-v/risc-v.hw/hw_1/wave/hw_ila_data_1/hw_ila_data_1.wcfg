@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="E:/FPGA/RISCV/10-fpga_add_uart/fpga/prj/risc-v/risc-v.hw/hw_1/wave/hw_ila_data_1/hw_ila_data_1.wdb" id="1">
+         <top_modules>
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="1,456"></ZoomStartTime>
+      <ZoomEndTime time="17,377"></ZoomEndTime>
+      <Cursor1Time time="4,109"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="185"></NameColumnWidth>
+      <ValueColumnWidth column_width="88"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="13" />
+   <wave_markers>
+   </wave_markers>
+   <wvobject fp_name="u_riscv_inst/execute_instr_addr" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/execute_instr_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">execute_instr_addr[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/execute_instr" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/execute_instr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">execute_instr[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/execute_op1" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/execute_op1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">execute_op1[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/jump_addr" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/jump_addr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">jump_addr[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/wr_reg_data" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/wr_reg_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_reg_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/execute_op2" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/execute_op2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">execute_op2[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/wr_reg_addr" type="array">
+      <obj_property name="ElementShortName">u_riscv_inst/wr_reg_addr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_reg_addr[4:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="reg_s10" type="array">
+      <obj_property name="ElementShortName">reg_s10[31:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_s10[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="reg_s11" type="array">
+      <obj_property name="ElementShortName">reg_s11[31:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_s11[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="test_case" type="array">
+      <obj_property name="ElementShortName">test_case[31:0]</obj_property>
+      <obj_property name="ObjectShortName">test_case[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/jump_en" type="logic">
+      <obj_property name="ElementShortName">u_riscv_inst/jump_en</obj_property>
+      <obj_property name="ObjectShortName">jump_en</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="key_out" type="logic">
+      <obj_property name="ElementShortName">key_out</obj_property>
+      <obj_property name="ObjectShortName">key_out</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+   <wvobject fp_name="u_riscv_inst/wr_reg_en" type="logic">
+      <obj_property name="ElementShortName">u_riscv_inst/wr_reg_en</obj_property>
+      <obj_property name="ObjectShortName">wr_reg_en</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <obj_property name="LABELRADIX">true</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+   </wvobject>
+</wave_config>
